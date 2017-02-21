@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    *{ margin: 0; padding:0; }
+  </style>
+</head>
+<body>
+  <br />
+  <div id="pinchzoom1" style="margin: 0 auto; width: 300px; height: 300px; border: 1px solid #000;"></div>
+  <script src="crop.js"></script>
+  <script>
+    var docEl = document.documentElement
+
+    var pinchzoom = new Crop.Pinch(document.getElementById('pinchzoom1'), {
+      width: 600,
+      height: 600,
+      target: 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
+      loaded: function () {
+        console.log('加载完毕')
+      }
+    })
+
+    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(value => {
+      pinchzoom.on(value, function (e) {
+        console.log(value)
+      })
+    })
+  </script>
+</html>

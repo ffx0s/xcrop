@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    *{ margin: 0; padding:0; }
+  </style>
+</head>
+<body>
+  <br />
+  <br />
+  <input type="file" id="file-input" accept="image/*">
+  <script src="crop.js"></script>
+  <script>
+    var crop = null
+
+    document.getElementById('file-input').onchange = function (e) {
+      var file = e.target.files[0]
+      if (crop) {
+        crop.load(file)
+      } else {
+        crop = new Crop({
+          width: 300,
+          height: 300,
+          target: file,
+          cancle: function () {
+            this.hide()
+          },
+          confirm: function () {
+            this.hide()
+            createImage(this.get({width: 600}).url, 300)
+            createImage(this.get({width: 300}).url, 150)
+            createImage(this.get({width: 150}).url, 75)
+          }
+        })
+      }
+      window.crop = crop
+    }
+
+    function createImage (src, width) {
+      var img = new window.Image()
+      img.src = src
+      img.style.width = width + 'px'
+      document.body.appendChild(img)
+    } 
+  </script>
+</html>
