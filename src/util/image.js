@@ -119,17 +119,33 @@ export function imageToCanvas (target, callback) {
     fileReader.readAsArrayBuffer(file)
   }
 
+  // 文件对象
   if (window.FileReader && (target instanceof window.Blob || target instanceof window.File)) {
     handleBinaryFile(target)
     return
   }
+
+  // imageElement 或者 canvasElement
+  if (typeof target === 'object' && target.nodeType) {
+    if (target.tagName === 'IMG') {
+      imageToCanvas(target.src, callback)
+    }
+    if (target.tagName === 'CANVAS') {
+      callback(target)
+    }
+    return
+  }
+
+  // base64图片地址
   if (isBase64Image(target)) {
     handleBinaryFile(dataURItoBlob(target))
     return
   }
+
+  // objectURL地址
   if (isObjectURL(target)) {
     objectURLToBlob(target, handleBinaryFile)
-  } else {
+  } else { // http/https图片地址
     httpURLToArrayBuffer(target, function (arrayBuffer) {
       imageOrientation(arrayBuffer, target)
     })

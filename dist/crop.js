@@ -142,6 +142,95 @@ function antialisScale(canvas, scale) {
   return newCanvas;
 }
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var get$1 = function get$1(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get$1(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
+};
+
 var isBase64Image = function isBase64Image(src) {
   return src.indexOf(';base64,') > 0;
 };
@@ -270,17 +359,34 @@ function imageToCanvas(target, callback) {
     fileReader.readAsArrayBuffer(file);
   }
 
+  // 文件对象
   if (window.FileReader && (target instanceof window.Blob || target instanceof window.File)) {
     handleBinaryFile(target);
     return;
   }
+
+  // imageElement 或者 canvasElement
+  if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && target.nodeType) {
+    if (target.tagName === 'IMG') {
+      imageToCanvas(target.src, callback);
+    }
+    if (target.tagName === 'CANVAS') {
+      callback(target);
+    }
+    return;
+  }
+
+  // base64图片地址
   if (isBase64Image(target)) {
     handleBinaryFile(dataURItoBlob(target));
     return;
   }
+
+  // objectURL地址
   if (isObjectURL(target)) {
     objectURLToBlob(target, handleBinaryFile);
   } else {
+    // http/https图片地址
     httpURLToArrayBuffer(target, function (arrayBuffer) {
       imageOrientation(arrayBuffer, target);
     });
