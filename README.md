@@ -5,7 +5,7 @@
 
 ## demo
 
-[https://ffx0s.github.io/xcrop/dist/demo.html](https://ffx0s.github.io/xcrop/dist/demo.html)
+[https://ffx0s.github.io/xcrop/dist/crop.html](https://ffx0s.github.io/xcrop/dist/crop.html)
 
 ## 安装
 
