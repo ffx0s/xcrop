@@ -93,6 +93,16 @@ target: document.getElementById('canvas')
 
 裁剪图片目标，支持二进制、base64、imageElement、objectUrl和canvas.
 
+### maxScale
+
+**Type:** _Number_
+
+``` js
+maxScale: 1.5
+```
+
+可以缩放的最大比例, 默认值是2倍
+
 ### created
 
 **Type:** _Function_
@@ -213,6 +223,22 @@ this.destroy()
  * @param {function} callback - 加载完成后的回调函数，function callback(canvas) {...}.
  */
 Crop.loadImage(target, callback)
+```
+
+## 其他
+
+### 如何监听触摸的事件：
+``` js
+const crop = new Crop({
+  mounted: function () {
+    const pinch = this.pinch
+    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(value => {
+      pinch.on(value, function (e) {
+        console.log(value)
+      })
+    })
+  }
+})
 ```
 
 ## Browser support
