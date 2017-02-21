@@ -17,17 +17,17 @@ Install with [npm](https://www.npmjs.com/package/xcrop): `npm install xcrop --sa
 import Crop from 'xcrop'
 
 const options = {
-    width: 300,
-    height: 300,
-    target: 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
-    cancle: function () {
-      this.hide()
-    },
-    confirm: function () {
-      this.hide()
-      console.log(this.get({width: 600}))
-    }
+  width: 300,
+  height: 300,
+  target: 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
+  cancle: function () {
+    this.hide()
+  },
+  confirm: function () {
+    this.hide()
+    console.log(this.get({width: 600}))
   }
+}
 const crop = new Crop(options)
 ```
 
