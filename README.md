@@ -9,6 +9,8 @@
 
 [https://ffx0s.github.io/xcrop/dist/crop.html](https://ffx0s.github.io/xcrop/dist/crop.html)
 
+<img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-qrcode.png" />
+
 ## 安装
 
 Install with [npm](https://www.npmjs.com/package/xcrop): `npm install xcrop --save`
