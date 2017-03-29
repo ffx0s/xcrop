@@ -87,6 +87,7 @@ Crop.prototype = {
             overflow: hidden;
             border: 1px solid rgba(0, 0, 0, .6);
             border-width: ${wrapProps.height}px ${wrapProps.width}px;
+            box-sizing: content-box;
           }
           .${this.className}:after {
             position: absolute;
