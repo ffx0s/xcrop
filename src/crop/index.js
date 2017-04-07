@@ -61,7 +61,7 @@ Crop.prototype = {
       style: function () {
         return `
           .${this.className} {
-            position: absolute;
+            position: fixed;
             left: 0;
             top: 0;
             overflow: hidden;

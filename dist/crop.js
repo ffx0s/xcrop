@@ -1,7 +1,7 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global.Crop = factory());
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define(factory) :
+	(global.Crop = factory());
 }(this, (function () { 'use strict';
 
 function noop() {}
@@ -146,89 +146,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return typeof obj;
 } : function (obj) {
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var get$1 = function get$1(object, property, receiver) {
-  if (object === null) object = Function.prototype;
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent === null) {
-      return undefined;
-    } else {
-      return get$1(parent, property, receiver);
-    }
-  } else if ("value" in desc) {
-    return desc.value;
-  } else {
-    var getter = desc.get;
-
-    if (getter === undefined) {
-      return undefined;
-    }
-
-    return getter.call(receiver);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var set = function set(object, property, value, receiver) {
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent !== null) {
-      set(parent, property, value, receiver);
-    }
-  } else if ("value" in desc && desc.writable) {
-    desc.value = value;
-  } else {
-    var setter = desc.set;
-
-    if (setter !== undefined) {
-      setter.call(receiver, value);
-    }
-  }
-
-  return value;
 };
 
 var isBase64Image = function isBase64Image(src) {
@@ -697,7 +614,7 @@ function initRender(pinch) {
   pinch.origin = { x: 0, y: 0 };
 }
 
-function render$1(pinch) {
+function render(pinch) {
   var options = pinch.options;
 
   pinch.createCanvas();
@@ -1167,7 +1084,7 @@ Pinch.prototype.init = function (options) {
   }
 
   initState(pinch);
-  render$1(pinch);
+  render(pinch);
   bindEvent(pinch);
 };
 
@@ -1225,7 +1142,7 @@ Crop.prototype = {
       width: el ? el.offsetWidth : docEl.clientWidth,
       height: el ? el.offsetHeight : docEl.clientHeight,
       style: function style() {
-        return '\n          .' + this.className + ' {\n            position: absolute;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n          }\n        ';
+        return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n          }\n        ';
       }
     };
     var maskProps = {
