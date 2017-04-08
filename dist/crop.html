@@ -17,6 +17,7 @@
 
     document.getElementById('file-input').onchange = function (e) {
       var file = e.target.files[0]
+      if (!file) return false
       if (crop) {
         crop.load(file)
       } else {
