@@ -34,7 +34,7 @@ export function getOrientation (binFile) {
   return -1
 }
 
-export function resetOrientation (srcBase64, srcOrientation, callback) {
+export function resetOrientation (srcBase64, srcOrientation, callback, errorCallback) {
   const img = new window.Image()
   if (!isBase64Image(srcBase64)) {
     img.crossOrigin = '*'
@@ -47,8 +47,9 @@ export function resetOrientation (srcBase64, srcOrientation, callback) {
     const isMobile = !!navigator.userAgent.match(/AppleWebKit.*Mobile.*/)
 
     if (isMobile && width * height > 16777216) {
-      console.warn('Canvas area exceeds the maximum limit (width * height > 16777216)')
-      callback(canvas)
+      const message = 'Canvas area exceeds the maximum limit (width * height > 16777216)'
+      console.warn(message)
+      errorCallback ? errorCallback({ code: 1, message }) : window.alert(message)
       return
     }
     // set proper canvas dimensions before transform & export
@@ -104,11 +105,11 @@ export function imgCover (imgW, imgH, divW, divH) {
   }
 }
 
-export function imageToCanvas (target, callback) {
+export function imageToCanvas (target, callback, errorCallback) {
   function imageOrientation (arrayBuffer, file) {
     const orientation = getOrientation(arrayBuffer)
     const src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file
-    resetOrientation(src, orientation, callback)
+    resetOrientation(src, orientation, callback, errorCallback)
   }
 
   function handleBinaryFile (file) {
