@@ -6,9 +6,7 @@
 
 function noop() {}
 
-var uuid = function uuid() {
-  return Math.random().toString(36).substring(3, 8);
-};
+
 
 function bind(fn, ctx) {
   function boundFn(a) {
@@ -453,14 +451,16 @@ function removeElement(element, targetElem) {
   }
 }
 
-function createStyle(css, elem) {
+function renderStyle(css) {
+  var elem = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : document.getElementsByTagName('head')[0];
+
   var styleElem = document.createElement('style');
   try {
     styleElem.appendChild(document.createTextNode(css));
   } catch (err) {
     styleElem.stylesheet.cssText = css;
   }
-  elem && elem.appendChild(styleElem);
+  elem.appendChild(styleElem);
   return styleElem;
 }
 
@@ -1207,6 +1207,7 @@ Crop.prototype = {
     crop.options = extend(getDefaultOptions(), options);
     crop.create();
     crop.render();
+    Crop.count++;
   },
   create: function create() {
     var crop = this;
@@ -1279,9 +1280,10 @@ Crop.prototype = {
   render: function render() {
     var crop = this;
     var options = crop.options;
-    var head = document.getElementsByTagName('head')[0];
 
-    head.appendChild(createStyle(crop.styles));
+    if (Crop.count === 0) {
+      renderStyle(crop.styles);
+    }
     options.el.appendChild(crop.root.el);
 
     crop.initPinch();
@@ -1408,12 +1410,12 @@ Crop.prototype = {
     this.pinch.scaleTo(point, zoom);
   }
 };
-
+Crop.count = 0;
 Crop.loadImage = imageToCanvas;
 Crop.Pinch = Pinch;
 
 function setClassName(name) {
-  return 'crop-' + name + '-' + uuid();
+  return 'crop-' + name;
 }
 
 return Crop;

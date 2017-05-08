@@ -55,13 +55,13 @@ export function removeElement (element, targetElem, value = true) {
   }
 }
 
-export function createStyle (css, elem) {
+export function renderStyle (css, elem = document.getElementsByTagName('head')[0]) {
   const styleElem = document.createElement('style')
   try {
     styleElem.appendChild(document.createTextNode(css))
   } catch (err) {
     styleElem.stylesheet.cssText = css
   }
-  elem && elem.appendChild(styleElem)
+  elem.appendChild(styleElem)
   return styleElem
 }
