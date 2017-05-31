@@ -68,6 +68,7 @@ Crop.prototype = {
             width: ${this.width}px;
             height: ${this.height}px;
             background: #000;
+            z-index: 99;
           }
         `
       }
