@@ -1,7 +1,7 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global.Crop = factory());
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+  typeof define === 'function' && define.amd ? define(factory) :
+  (global.Crop = factory());
 }(this, (function () { 'use strict';
 
 function noop() {}
@@ -614,7 +614,7 @@ function initRender(pinch) {
   pinch.origin = { x: 0, y: 0 };
 }
 
-function render(pinch) {
+function render$1(pinch) {
   var options = pinch.options;
 
   pinch.createCanvas();
@@ -1084,7 +1084,7 @@ Pinch.prototype.init = function (options) {
   }
 
   initState(pinch);
-  render(pinch);
+  render$1(pinch);
   bindEvent(pinch);
 };
 
@@ -1142,7 +1142,7 @@ Crop.prototype = {
       width: el ? el.offsetWidth : docEl.clientWidth,
       height: el ? el.offsetHeight : docEl.clientHeight,
       style: function style() {
-        return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n          }\n        ';
+        return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n            z-index: 99;\n          }\n        ';
       }
     };
     var maskProps = {
