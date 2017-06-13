@@ -375,13 +375,13 @@ function imageToCanvas(target, callback, errorCallback) {
     return;
   }
 
-  // base64图片地址
+  // base64图片
   if (isBase64Image(target)) {
     handleBinaryFile(dataURItoBlob(target));
     return;
   }
 
-  // objectURL地址
+  // objectURL
   if (isObjectURL(target)) {
     objectURLToBlob(target, handleBinaryFile);
   } else {
@@ -701,16 +701,28 @@ function initRender(pinch) {
 function render$1(pinch) {
   var options = pinch.options;
 
-  pinch.createCanvas();
-
   options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el;
-  options.el.appendChild(pinch.canvas);
+  pinch.canvas = pinch.createCanvas();
+  pinch.context = pinch.canvas.getContext('2d');
 
-  setTimeout(function () {
-    pinch.rect = pinch.canvas.getBoundingClientRect();
+  getCanvasRect(function (rect) {
+    pinch.rect = rect;
     pinch.canvasScale = options.width / pinch.rect.width;
-    pinch.load(options.target);
-  }, 0);
+    pinch.load(options.target, function () {
+      options.el.appendChild(pinch.canvas);
+    });
+  });
+
+  function getCanvasRect(callback) {
+    var canvas = pinch.createCanvas();
+    options.el.appendChild(canvas);
+    setTimeout(function () {
+      var rect = canvas.getBoundingClientRect();
+      options.el.removeChild(canvas);
+      canvas = null;
+      callback(rect);
+    }, 10);
+  }
 }
 
 function addRender(Pinch) {
@@ -720,15 +732,14 @@ function addRender(Pinch) {
     var pinch = this;
     var canvas = document.createElement('canvas');
 
-    pinch.canvas = canvas;
-    pinch.context = canvas.getContext('2d');
-
     canvas.width = pinch.options.width;
     canvas.height = pinch.options.height;
     canvas.style.cssText = 'width:100%;height:100%;';
+
+    return canvas;
   };
 
-  proto.load = function (target) {
+  proto.load = function (target, callback) {
     var pinch = this;
 
     imageToCanvas(target, success);
@@ -746,8 +757,9 @@ function addRender(Pinch) {
       pinch.position = imgCover(canvas.width, canvas.height, pinchWidth, pinchHeight);
       pinch.position.x += offset.left * scale;
       pinch.position.y += offset.top * scale;
-      pinch.originObj = canvas;
+      pinch.imageCanvas = canvas;
       pinch.draw();
+      callback && callback();
       loaded.call(pinch);
     }
   };
@@ -778,7 +790,7 @@ function addRender(Pinch) {
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, options.width, options.height);
     context.restore();
-    context.drawImage(pinch.originObj, x, y, width, height);
+    context.drawImage(pinch.imageCanvas, x, y, width, height);
   };
 
   proto.moveTo = function (_x, _y) {

@@ -84,7 +84,7 @@ export function resetOrientation (srcBase64, srcOrientation, callback, errorCall
 }
 
 export function imgCover (imgW, imgH, divW, divH) {
-  let scale = imgW / imgH
+  const scale = imgW / imgH
   let width = divW
   let height = width / scale
   let x = 0
@@ -137,13 +137,13 @@ export function imageToCanvas (target, callback, errorCallback) {
     return
   }
 
-  // base64图片地址
+  // base64图片
   if (isBase64Image(target)) {
     handleBinaryFile(dataURItoBlob(target))
     return
   }
 
-  // objectURL地址
+  // objectURL
   if (isObjectURL(target)) {
     objectURLToBlob(target, handleBinaryFile)
   } else { // http/https图片地址
