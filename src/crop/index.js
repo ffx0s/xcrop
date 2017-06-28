@@ -1,8 +1,8 @@
-import { noop, uuid, bind, extend } from '../util/shared'
+import { noop, bind, extend } from '../util/shared'
 import { dataURItoBlob } from '../util/file'
 import { scaleCanvas, antialisScale } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
-import { Element, createElement, removeElement, createStyle } from '../util/element'
+import { Element, createElement, removeElement, renderStyle } from '../util/element'
 
 import Pinch from '../pinch/index'
 
@@ -36,6 +36,7 @@ Crop.prototype = {
     crop.options = extend(getDefaultOptions(), options)
     crop.create()
     crop.render()
+    Crop.count ++
   },
   create: function () {
     const crop = this
@@ -182,9 +183,10 @@ Crop.prototype = {
   render: function () {
     const crop = this
     const options = crop.options
-    const head = document.getElementsByTagName('head')[0]
 
-    head.appendChild(createStyle(crop.styles))
+    if (Crop.count === 0) {
+      renderStyle(crop.styles)
+    }
     options.el.appendChild(crop.root.el)
 
     crop.initPinch()
@@ -288,12 +290,12 @@ Crop.prototype = {
     this.pinch.scaleTo(point, zoom)
   }
 }
-
+Crop.count = 0
 Crop.loadImage = imageToCanvas
 Crop.Pinch = Pinch
 
 function setClassName (name) {
-  return `crop-${name}-${uuid()}`
+  return `crop-${name}`
 }
 
 export default Crop

@@ -9,16 +9,28 @@ export function initRender (pinch) {
 export function render (pinch) {
   const options = pinch.options
 
-  pinch.createCanvas()
-
   options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
-  options.el.appendChild(pinch.canvas)
+  pinch.canvas = pinch.createCanvas()
+  pinch.context = pinch.canvas.getContext('2d')
 
-  setTimeout(() => {
-    pinch.rect = pinch.canvas.getBoundingClientRect()
+  getCanvasRect(function (rect) {
+    pinch.rect = rect
     pinch.canvasScale = options.width / pinch.rect.width
-    pinch.load(options.target)
-  }, 0)
+    pinch.load(options.target, function () {
+      options.el.appendChild(pinch.canvas)
+    })
+  })
+
+  function getCanvasRect (callback) {
+    let canvas = pinch.createCanvas()
+    options.el.appendChild(canvas)
+    setTimeout(() => {
+      const rect = canvas.getBoundingClientRect()
+      options.el.removeChild(canvas)
+      canvas = null
+      callback(rect)
+    }, 10)
+  }
 }
 
 export function addRender (Pinch) {
@@ -28,15 +40,14 @@ export function addRender (Pinch) {
     const pinch = this
     const canvas = document.createElement('canvas')
 
-    pinch.canvas = canvas
-    pinch.context = canvas.getContext('2d')
-
     canvas.width = pinch.options.width
     canvas.height = pinch.options.height
     canvas.style.cssText = 'width:100%;height:100%;'
+
+    return canvas
   }
 
-  proto.load = function (target) {
+  proto.load = function (target, callback) {
     const pinch = this
 
     imageToCanvas(target, success)
@@ -49,8 +60,9 @@ export function addRender (Pinch) {
       pinch.position = imgCover(canvas.width, canvas.height, pinchWidth, pinchHeight)
       pinch.position.x += offset.left * scale
       pinch.position.y += offset.top * scale
-      pinch.originObj = canvas
+      pinch.imageCanvas = canvas
       pinch.draw()
+      callback && callback()
       loaded.call(pinch)
     }
   }
@@ -76,7 +88,7 @@ export function addRender (Pinch) {
     context.setTransform(1, 0, 0, 1, 0, 0)
     context.clearRect(0, 0, options.width, options.height)
     context.restore()
-    context.drawImage(pinch.originObj, x, y, width, height)
+    context.drawImage(pinch.imageCanvas, x, y, width, height)
   }
 
   proto.moveTo = function (_x, _y) {

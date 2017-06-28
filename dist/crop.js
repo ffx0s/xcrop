@@ -6,9 +6,7 @@
 
 function noop() {}
 
-var uuid = function uuid() {
-  return Math.random().toString(36).substring(3, 8);
-};
+
 
 function bind(fn, ctx) {
   function boundFn(a) {
@@ -183,7 +181,7 @@ function getOrientation(binFile) {
   return -1;
 }
 
-function resetOrientation(srcBase64, srcOrientation, callback) {
+function resetOrientation(srcBase64, srcOrientation, callback, errorCallback) {
   var img = new window.Image();
   if (!isBase64Image(srcBase64)) {
     img.crossOrigin = '*';
@@ -196,38 +194,13 @@ function resetOrientation(srcBase64, srcOrientation, callback) {
     var isMobile = !!navigator.userAgent.match(/AppleWebKit.*Mobile.*/);
 
     if (isMobile && width * height > 16777216) {
-      console.warn('Canvas area exceeds the maximum limit (width * height > 16777216)');
-      callback(canvas);
+      var message = 'Canvas area exceeds the maximum limit (width * height > 16777216)';
+      console.warn(message);
+      errorCallback ? errorCallback({ code: 1, message: message }) : window.alert(message);
       return;
     }
-    // set proper canvas dimensions before transform & export
-    if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
-      canvas.width = height;
-      canvas.height = width;
-    } else {
-      canvas.width = width;
-      canvas.height = height;
-    }
 
-    // transform context before drawing image
-    switch (srcOrientation) {
-      case 2:
-        ctx.transform(-1, 0, 0, 1, width, 0);break;
-      case 3:
-        ctx.transform(-1, 0, 0, -1, width, height);break;
-      case 4:
-        ctx.transform(1, 0, 0, -1, 0, height);break;
-      case 5:
-        ctx.transform(0, 1, 1, 0, 0, 0);break;
-      case 6:
-        ctx.transform(0, 1, -1, 0, height, 0);break;
-      case 7:
-        ctx.transform(0, -1, -1, 0, height, width);break;
-      case 8:
-        ctx.transform(0, -1, 1, 0, 0, width);break;
-      default:
-        ctx.transform(1, 0, 0, 1, 0, 0);
-    }
+    transformCoordinate(canvas, ctx, width, height, srcOrientation);
 
     // draw image
     ctx.drawImage(img, 0, 0);
@@ -237,6 +210,37 @@ function resetOrientation(srcBase64, srcOrientation, callback) {
   };
 
   img.src = srcBase64;
+}
+
+function transformCoordinate(canvas, ctx, width, height, srcOrientation) {
+  // set proper canvas dimensions before transform & export
+  if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
+    canvas.width = height;
+    canvas.height = width;
+  } else {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  // transform context before drawing image
+  switch (srcOrientation) {
+    case 2:
+      ctx.transform(-1, 0, 0, 1, width, 0);break;
+    case 3:
+      ctx.transform(-1, 0, 0, -1, width, height);break;
+    case 4:
+      ctx.transform(1, 0, 0, -1, 0, height);break;
+    case 5:
+      ctx.transform(0, 1, 1, 0, 0, 0);break;
+    case 6:
+      ctx.transform(0, 1, -1, 0, height, 0);break;
+    case 7:
+      ctx.transform(0, -1, -1, 0, height, width);break;
+    case 8:
+      ctx.transform(0, -1, 1, 0, 0, width);break;
+    default:
+      ctx.transform(1, 0, 0, 1, 0, 0);
+  }
 }
 
 function imgCover(imgW, imgH, divW, divH) {
@@ -261,11 +265,11 @@ function imgCover(imgW, imgH, divW, divH) {
   };
 }
 
-function imageToCanvas(target, callback) {
+function imageToCanvas(target, callback, errorCallback) {
   function imageOrientation(arrayBuffer, file) {
     var orientation = getOrientation(arrayBuffer);
     var src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file;
-    resetOrientation(src, orientation, callback);
+    resetOrientation(src, orientation, callback, errorCallback);
   }
 
   function handleBinaryFile(file) {
@@ -293,13 +297,13 @@ function imageToCanvas(target, callback) {
     return;
   }
 
-  // base64图片地址
+  // base64图片
   if (isBase64Image(target)) {
     handleBinaryFile(dataURItoBlob(target));
     return;
   }
 
-  // objectURL地址
+  // objectURL
   if (isObjectURL(target)) {
     objectURLToBlob(target, handleBinaryFile);
   } else {
@@ -369,14 +373,16 @@ function removeElement(element, targetElem) {
   }
 }
 
-function createStyle(css, elem) {
+function renderStyle(css) {
+  var elem = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : document.getElementsByTagName('head')[0];
+
   var styleElem = document.createElement('style');
   try {
     styleElem.appendChild(document.createTextNode(css));
   } catch (err) {
     styleElem.stylesheet.cssText = css;
   }
-  elem && elem.appendChild(styleElem);
+  elem.appendChild(styleElem);
   return styleElem;
 }
 
@@ -617,16 +623,28 @@ function initRender(pinch) {
 function render$1(pinch) {
   var options = pinch.options;
 
-  pinch.createCanvas();
-
   options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el;
-  options.el.appendChild(pinch.canvas);
+  pinch.canvas = pinch.createCanvas();
+  pinch.context = pinch.canvas.getContext('2d');
 
-  setTimeout(function () {
-    pinch.rect = pinch.canvas.getBoundingClientRect();
+  getCanvasRect(function (rect) {
+    pinch.rect = rect;
     pinch.canvasScale = options.width / pinch.rect.width;
-    pinch.load(options.target);
-  }, 0);
+    pinch.load(options.target, function () {
+      options.el.appendChild(pinch.canvas);
+    });
+  });
+
+  function getCanvasRect(callback) {
+    var canvas = pinch.createCanvas();
+    options.el.appendChild(canvas);
+    setTimeout(function () {
+      var rect = canvas.getBoundingClientRect();
+      options.el.removeChild(canvas);
+      canvas = null;
+      callback(rect);
+    }, 10);
+  }
 }
 
 function addRender(Pinch) {
@@ -636,15 +654,14 @@ function addRender(Pinch) {
     var pinch = this;
     var canvas = document.createElement('canvas');
 
-    pinch.canvas = canvas;
-    pinch.context = canvas.getContext('2d');
-
     canvas.width = pinch.options.width;
     canvas.height = pinch.options.height;
     canvas.style.cssText = 'width:100%;height:100%;';
+
+    return canvas;
   };
 
-  proto.load = function (target) {
+  proto.load = function (target, callback) {
     var pinch = this;
 
     imageToCanvas(target, success);
@@ -662,8 +679,9 @@ function addRender(Pinch) {
       pinch.position = imgCover(canvas.width, canvas.height, pinchWidth, pinchHeight);
       pinch.position.x += offset.left * scale;
       pinch.position.y += offset.top * scale;
-      pinch.originObj = canvas;
+      pinch.imageCanvas = canvas;
       pinch.draw();
+      callback && callback();
       loaded.call(pinch);
     }
   };
@@ -694,7 +712,7 @@ function addRender(Pinch) {
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, options.width, options.height);
     context.restore();
-    context.drawImage(pinch.originObj, x, y, width, height);
+    context.drawImage(pinch.imageCanvas, x, y, width, height);
   };
 
   proto.moveTo = function (_x, _y) {
@@ -1123,6 +1141,7 @@ Crop.prototype = {
     crop.options = extend(getDefaultOptions(), options);
     crop.create();
     crop.render();
+    Crop.count++;
   },
   create: function create() {
     var crop = this;
@@ -1195,9 +1214,10 @@ Crop.prototype = {
   render: function render() {
     var crop = this;
     var options = crop.options;
-    var head = document.getElementsByTagName('head')[0];
 
-    head.appendChild(createStyle(crop.styles));
+    if (Crop.count === 0) {
+      renderStyle(crop.styles);
+    }
     options.el.appendChild(crop.root.el);
 
     crop.initPinch();
@@ -1324,12 +1344,12 @@ Crop.prototype = {
     this.pinch.scaleTo(point, zoom);
   }
 };
-
+Crop.count = 0;
 Crop.loadImage = imageToCanvas;
 Crop.Pinch = Pinch;
 
 function setClassName(name) {
-  return 'crop-' + name + '-' + uuid();
+  return 'crop-' + name;
 }
 
 return Crop;
