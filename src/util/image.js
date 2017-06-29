@@ -65,6 +65,103 @@ export function resetOrientation (srcBase64, srcOrientation, callback, errorCall
   img.src = srcBase64
 }
 
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Rendering image element (with resizing) into the canvas element
+*/
+
+export function renderImageToCanvas (img, canvas, options, doSquash) {
+  let iw = img.naturalWidth
+  let ih = img.naturalHeight
+  if (!(iw + ih)) return
+  const width = options.width
+  const height = options.height
+  const ctx = canvas.getContext('2d')
+
+  ctx.save()
+  transformCoordinate(canvas, ctx, width, height, options.orientation)
+  const subsampled = detectSubsampling(img)
+  if (subsampled) {
+    iw /= 2
+    ih /= 2
+  }
+  const d = 1024 // size of tiling canvas
+  let tmpCanvas = document.createElement('canvas')
+  tmpCanvas.width = tmpCanvas.height = d
+  let tmpCtx = tmpCanvas.getContext('2d')
+  let vertSquashRatio = doSquash ? detectVerticalSquash(img, iw, ih) : 1
+  const dw = Math.ceil(d * width / iw)
+  const dh = Math.ceil(d * height / ih / vertSquashRatio)
+  let sy = 0
+  let dy = 0
+  while (sy < ih) {
+    let sx = 0
+    let dx = 0
+    while (sx < iw) {
+      tmpCtx.clearRect(0, 0, d, d)
+      tmpCtx.drawImage(img, -sx, -sy)
+      ctx.drawImage(tmpCanvas, 0, 0, d, d, dx, dy, dw, dh)
+      sx += d
+      dx += dw
+    }
+    sy += d
+    dy += dh
+  }
+  ctx.restore()
+  tmpCanvas = tmpCtx = null
+}
+
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Detect subsampling in loaded image.
+ * In iOS, larger images than 2M pixels may be subsampled in rendering.
+ */
+export function detectSubsampling (img) {
+  const iw = img.naturalWidth
+  const ih = img.naturalHeight
+  if (iw * ih > 1024 * 1024) { // subsampling may happen over megapixel image
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, -iw + 1, 0)
+    // subsampled image becomes half smaller in rendering size.
+    // check alpha channel value to confirm image is covering edge pixel or not.
+    // if alpha value is 0 image is not covering, hence subsampled.
+    return ctx.getImageData(0, 0, 1, 1).data[3] === 0
+  } else {
+    return false
+  }
+}
+
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Detecting vertical squash in loaded image.
+ * Fixes a bug which squash image vertically while drawing into canvas for some images.
+ */
+export function detectVerticalSquash (img, iw, ih) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 1
+  canvas.height = ih
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0)
+  const data = ctx.getImageData(0, 0, 1, ih).data
+  // search image edge pixel position in case it is squashed vertically.
+  let sy = 0
+  let ey = ih
+  let py = ih
+  while (py > sy) {
+    const alpha = data[(py - 1) * 4 + 3]
+    if (alpha === 0) {
+      ey = py
+    } else {
+      sy = py
+    }
+    py = (ey + sy) >> 1
+  }
+  const ratio = (py / ih)
+  return (ratio === 0) ? 1 : ratio
+}
+
 export function transformCoordinate (canvas, ctx, width, height, srcOrientation) {
   // set proper canvas dimensions before transform & export
   if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
@@ -110,11 +207,11 @@ export function imgCover (imgW, imgH, divW, divH) {
   }
 }
 
-export function imageToCanvas (target, callback, errorCallback) {
+export function imageToCanvas (target, callback) {
   function imageOrientation (arrayBuffer, file) {
     const orientation = getOrientation(arrayBuffer)
     const src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file
-    resetOrientation(src, orientation, callback, errorCallback)
+    resetOrientation(src, orientation, callback)
   }
 
   function handleBinaryFile (file) {

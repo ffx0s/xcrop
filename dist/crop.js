@@ -295,6 +295,65 @@ function resetOrientation(srcBase64, srcOrientation, callback, errorCallback) {
   img.src = srcBase64;
 }
 
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Rendering image element (with resizing) into the canvas element
+*/
+
+
+
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Detect subsampling in loaded image.
+ * In iOS, larger images than 2M pixels may be subsampled in rendering.
+ */
+function detectSubsampling(img) {
+  var iw = img.naturalWidth;
+  var ih = img.naturalHeight;
+  if (iw * ih > 1024 * 1024) {
+    // subsampling may happen over megapixel image
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, -iw + 1, 0);
+    // subsampled image becomes half smaller in rendering size.
+    // check alpha channel value to confirm image is covering edge pixel or not.
+    // if alpha value is 0 image is not covering, hence subsampled.
+    return ctx.getImageData(0, 0, 1, 1).data[3] === 0;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * https://github.com/stomita/ios-imagefile-megapixel
+ * Detecting vertical squash in loaded image.
+ * Fixes a bug which squash image vertically while drawing into canvas for some images.
+ */
+function detectVerticalSquash(img, iw, ih) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = ih;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  var data = ctx.getImageData(0, 0, 1, ih).data;
+  // search image edge pixel position in case it is squashed vertically.
+  var sy = 0;
+  var ey = ih;
+  var py = ih;
+  while (py > sy) {
+    var alpha = data[(py - 1) * 4 + 3];
+    if (alpha === 0) {
+      ey = py;
+    } else {
+      sy = py;
+    }
+    py = ey + sy >> 1;
+  }
+  var ratio = py / ih;
+  return ratio === 0 ? 1 : ratio;
+}
+
 function transformCoordinate(canvas, ctx, width, height, srcOrientation) {
   // set proper canvas dimensions before transform & export
   if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
@@ -348,11 +407,11 @@ function imgCover(imgW, imgH, divW, divH) {
   };
 }
 
-function imageToCanvas(target, callback, errorCallback) {
+function imageToCanvas(target, callback) {
   function imageOrientation(arrayBuffer, file) {
     var orientation = getOrientation(arrayBuffer);
     var src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file;
-    resetOrientation(src, orientation, callback, errorCallback);
+    resetOrientation(src, orientation, callback);
   }
 
   function handleBinaryFile(file) {
