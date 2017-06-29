@@ -1,5 +1,5 @@
 import { noop, bind, extend } from '../util/shared'
-import { dataURItoBlob } from '../util/file'
+import { dataURItoBlob, URL } from '../util/file'
 import { scaleCanvas, antialisScale } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
 import { Element, createElement, removeElement, renderStyle } from '../util/element'
@@ -9,6 +9,8 @@ import Pinch from '../pinch/index'
 function getDefaultOptions () {
   return {
     target: null,
+    maxTargetWidth: 2000,
+    maxTargetHeight: 2000,
     el: null,
     width: 300,
     height: 300,
@@ -197,10 +199,12 @@ Crop.prototype = {
     const crop = this
 
     function init () {
-      const { target, canvasScale, x, y, el, maxScale, minScale, loaded } = crop.options
+      const { target, maxTargetWidth, maxTargetHeight, canvasScale, x, y, el, maxScale, minScale, loaded } = crop.options
       const { el: rootEl, width, height } = crop.root
       const pinchOptions = {
         target,
+        maxTargetWidth,
+        maxTargetHeight,
         el,
         maxScale,
         minScale,
@@ -259,7 +263,7 @@ Crop.prototype = {
     }
 
     result.blob = dataURItoBlob(result.src)
-    result.url = window.URL.createObjectURL(result.blob)
+    result.url = URL.createObjectURL(result.blob)
 
     return result
   },

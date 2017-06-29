@@ -1,3 +1,5 @@
+export const URL = window.URL && window.URL.createObjectURL ? window.URL : window.webkitURL && window.webkitURL.createObjectURL ? window.webkitURL : null
+
 export function dataURItoBlob (dataURI) {
   let byteString
 

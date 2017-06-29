@@ -1,4 +1,5 @@
-import { dataURItoBlob, objectURLToBlob, httpURLToArrayBuffer, isObjectURL } from './file'
+import { dataURItoBlob, objectURLToBlob, httpURLToArrayBuffer, isObjectURL, URL } from './file'
+import { extend } from './shared'
 
 export const isBase64Image = src => src.indexOf(';base64,') > 0
 
@@ -32,37 +33,6 @@ export function getOrientation (binFile) {
     else offset += view.getUint16(offset, false)
   }
   return -1
-}
-
-export function resetOrientation (srcBase64, srcOrientation, callback, errorCallback) {
-  const img = new window.Image()
-  if (!isBase64Image(srcBase64)) {
-    img.crossOrigin = '*'
-  }
-  img.onload = function () {
-    const width = img.width
-    const height = img.height
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const isMobile = !!navigator.userAgent.match(/AppleWebKit.*Mobile.*/)
-
-    if (isMobile && width * height > 16777216) {
-      const message = 'Canvas area exceeds the maximum limit (width * height > 16777216)'
-      console.warn(message)
-      errorCallback ? errorCallback({ code: 1, message }) : window.alert(message)
-      return
-    }
-
-    transformCoordinate(canvas, ctx, width, height, srcOrientation)
-
-    // draw image
-    ctx.drawImage(img, 0, 0)
-
-    // export canvas
-    callback(canvas)
-  }
-
-  img.src = srcBase64
 }
 
 /**
@@ -116,7 +86,7 @@ export function renderImageToCanvas (img, canvas, options, doSquash) {
  * Detect subsampling in loaded image.
  * In iOS, larger images than 2M pixels may be subsampled in rendering.
  */
-export function detectSubsampling (img) {
+function detectSubsampling (img) {
   const iw = img.naturalWidth
   const ih = img.naturalHeight
   if (iw * ih > 1024 * 1024) { // subsampling may happen over megapixel image
@@ -138,7 +108,7 @@ export function detectSubsampling (img) {
  * Detecting vertical squash in loaded image.
  * Fixes a bug which squash image vertically while drawing into canvas for some images.
  */
-export function detectVerticalSquash (img, iw, ih) {
+function detectVerticalSquash (img, iw, ih) {
   const canvas = document.createElement('canvas')
   canvas.width = 1
   canvas.height = ih
@@ -207,11 +177,23 @@ export function imgCover (imgW, imgH, divW, divH) {
   }
 }
 
-export function imageToCanvas (target, callback) {
+export function imageToCanvas (target, callback, opt) {
+  const options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt)
+
   function imageOrientation (arrayBuffer, file) {
     const orientation = getOrientation(arrayBuffer)
-    const src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file
-    resetOrientation(src, orientation, callback)
+    const isBlob = typeof file !== 'string'
+    const src = isBlob ? URL.createObjectURL(file) : file
+    const doSquash = isBlob && file.type === 'image/jpeg'
+    const img = new window.Image()
+    if (!isBase64Image(src)) {
+      img.crossOrigin = '*'
+    }
+    img.onload = function () {
+      createCanvas(img, orientation, callback, doSquash, options)
+      isBlob && URL.revokeObjectURL(src)
+    }
+    img.src = src
   }
 
   function handleBinaryFile (file) {
@@ -253,4 +235,29 @@ export function imageToCanvas (target, callback) {
       imageOrientation(arrayBuffer, target)
     })
   }
+}
+
+function createCanvas (img, orientation, callback, doSquash, options) {
+  const canvas = document.createElement('canvas')
+  let { maxWidth, maxHeight, width, height } = options
+  const imgWidth = img.naturalWidth
+  const imgHeight = img.naturalHeight
+  if (width && !height) {
+    height = (imgHeight * width / imgWidth) << 0
+  } else if (height && !width) {
+    width = (imgWidth * height / imgHeight) << 0
+  } else {
+    width = imgWidth
+    height = imgHeight
+  }
+  if (maxWidth && imgWidth > maxWidth) {
+    width = maxWidth
+    height = (imgHeight * width / imgWidth) << 0
+  }
+  if (maxHeight && height > maxHeight) {
+    height = maxHeight
+    width = (imgWidth * height / imgHeight) << 0
+  }
+  renderImageToCanvas(img, canvas, { orientation, width, height }, doSquash)
+  callback(canvas)
 }

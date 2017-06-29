@@ -23,7 +23,7 @@
       }
     })
 
-    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(value => {
+    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(function (value) {
       pinchzoom.on(value, function (e) {
         console.log(value)
       })

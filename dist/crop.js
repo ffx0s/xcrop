@@ -24,6 +24,8 @@ function extend(to, _from) {
   return to;
 }
 
+var URL = window.URL && window.URL.createObjectURL ? window.URL : window.webkitURL && window.webkitURL.createObjectURL ? window.webkitURL : null;
+
 function dataURItoBlob(dataURI) {
   var byteString = void 0;
 
@@ -146,6 +148,89 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var get$1 = function get$1(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get$1(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
+};
+
 var isBase64Image = function isBase64Image(src) {
   return src.indexOf(';base64,') > 0;
 };
@@ -181,43 +266,51 @@ function getOrientation(binFile) {
   return -1;
 }
 
-function resetOrientation(srcBase64, srcOrientation, callback, errorCallback) {
-  var img = new window.Image();
-  if (!isBase64Image(srcBase64)) {
-    img.crossOrigin = '*';
-  }
-  img.onload = function () {
-    var width = img.width;
-    var height = img.height;
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    var isMobile = !!navigator.userAgent.match(/AppleWebKit.*Mobile.*/);
-
-    if (isMobile && width * height > 16777216) {
-      var message = 'Canvas area exceeds the maximum limit (width * height > 16777216)';
-      console.warn(message);
-      errorCallback ? errorCallback({ code: 1, message: message }) : window.alert(message);
-      return;
-    }
-
-    transformCoordinate(canvas, ctx, width, height, srcOrientation);
-
-    // draw image
-    ctx.drawImage(img, 0, 0);
-
-    // export canvas
-    callback(canvas);
-  };
-
-  img.src = srcBase64;
-}
-
 /**
  * https://github.com/stomita/ios-imagefile-megapixel
  * Rendering image element (with resizing) into the canvas element
 */
 
+function renderImageToCanvas(img, canvas, options, doSquash) {
+  var iw = img.naturalWidth;
+  var ih = img.naturalHeight;
+  if (!(iw + ih)) return;
+  var width = options.width;
+  var height = options.height;
+  var ctx = canvas.getContext('2d');
 
+  ctx.save();
+  transformCoordinate(canvas, ctx, width, height, options.orientation);
+  var subsampled = detectSubsampling(img);
+  if (subsampled) {
+    iw /= 2;
+    ih /= 2;
+  }
+  var d = 1024; // size of tiling canvas
+  var tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = tmpCanvas.height = d;
+  var tmpCtx = tmpCanvas.getContext('2d');
+  var vertSquashRatio = doSquash ? detectVerticalSquash(img, iw, ih) : 1;
+  var dw = Math.ceil(d * width / iw);
+  var dh = Math.ceil(d * height / ih / vertSquashRatio);
+  var sy = 0;
+  var dy = 0;
+  while (sy < ih) {
+    var sx = 0;
+    var dx = 0;
+    while (sx < iw) {
+      tmpCtx.clearRect(0, 0, d, d);
+      tmpCtx.drawImage(img, -sx, -sy);
+      ctx.drawImage(tmpCanvas, 0, 0, d, d, dx, dy, dw, dh);
+      sx += d;
+      dx += dw;
+    }
+    sy += d;
+    dy += dh;
+  }
+  ctx.restore();
+  tmpCanvas = tmpCtx = null;
+}
 
 /**
  * https://github.com/stomita/ios-imagefile-megapixel
@@ -324,11 +417,23 @@ function imgCover(imgW, imgH, divW, divH) {
   };
 }
 
-function imageToCanvas(target, callback) {
+function imageToCanvas(target, callback, opt) {
+  var options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt);
+
   function imageOrientation(arrayBuffer, file) {
     var orientation = getOrientation(arrayBuffer);
-    var src = typeof file !== 'string' ? window.URL.createObjectURL(file) : file;
-    resetOrientation(src, orientation, callback);
+    var isBlob = typeof file !== 'string';
+    var src = isBlob ? URL.createObjectURL(file) : file;
+    var doSquash = isBlob && file.type === 'image/jpeg';
+    var img = new window.Image();
+    if (!isBase64Image(src)) {
+      img.crossOrigin = '*';
+    }
+    img.onload = function () {
+      createCanvas(img, orientation, callback, doSquash, options);
+      isBlob && URL.revokeObjectURL(src);
+    };
+    img.src = src;
   }
 
   function handleBinaryFile(file) {
@@ -371,6 +476,35 @@ function imageToCanvas(target, callback) {
       imageOrientation(arrayBuffer, target);
     });
   }
+}
+
+function createCanvas(img, orientation, callback, doSquash, options) {
+  var canvas = document.createElement('canvas');
+  var maxWidth = options.maxWidth,
+      maxHeight = options.maxHeight,
+      width = options.width,
+      height = options.height;
+
+  var imgWidth = img.naturalWidth;
+  var imgHeight = img.naturalHeight;
+  if (width && !height) {
+    height = imgHeight * width / imgWidth << 0;
+  } else if (height && !width) {
+    width = imgWidth * height / imgHeight << 0;
+  } else {
+    width = imgWidth;
+    height = imgHeight;
+  }
+  if (maxWidth && imgWidth > maxWidth) {
+    width = maxWidth;
+    height = imgHeight * width / imgWidth << 0;
+  }
+  if (maxHeight && height > maxHeight) {
+    height = maxHeight;
+    width = imgWidth * height / imgHeight << 0;
+  }
+  renderImageToCanvas(img, canvas, { orientation: orientation, width: width, height: height }, doSquash);
+  callback(canvas);
 }
 
 function Element(tagName, attr) {
@@ -723,7 +857,7 @@ function addRender(Pinch) {
   proto.load = function (target, callback) {
     var pinch = this;
 
-    imageToCanvas(target, success);
+    imageToCanvas(target, success, { maxWidth: pinch.options.maxTargetWidth, maxHeight: pinch.options.maxTargetHeight });
 
     function success(canvas) {
       var _pinch$options = pinch.options,
@@ -1129,6 +1263,8 @@ var addGlobal = function (Pinch) {
 function getDefaultOptions$1() {
   return {
     target: null,
+    maxTargetWidth: 2000,
+    maxTargetHeight: 2000,
     el: null,
     width: 800,
     height: 800,
@@ -1173,6 +1309,8 @@ addValidation(Pinch);
 function getDefaultOptions() {
   return {
     target: null,
+    maxTargetWidth: 2000,
+    maxTargetHeight: 2000,
     el: null,
     width: 300,
     height: 300,
@@ -1289,6 +1427,8 @@ Crop.prototype = {
     function init() {
       var _crop$options = crop.options,
           target = _crop$options.target,
+          maxTargetWidth = _crop$options.maxTargetWidth,
+          maxTargetHeight = _crop$options.maxTargetHeight,
           canvasScale = _crop$options.canvasScale,
           x = _crop$options.x,
           y = _crop$options.y,
@@ -1303,6 +1443,8 @@ Crop.prototype = {
 
       var pinchOptions = {
         target: target,
+        maxTargetWidth: maxTargetWidth,
+        maxTargetHeight: maxTargetHeight,
         el: el,
         maxScale: maxScale,
         minScale: minScale,
@@ -1372,7 +1514,7 @@ Crop.prototype = {
     }
 
     result.blob = dataURItoBlob(result.src);
-    result.url = window.URL.createObjectURL(result.blob);
+    result.url = URL.createObjectURL(result.blob);
 
     return result;
   },

@@ -7,6 +7,8 @@ import addGlobal from './global'
 function getDefaultOptions () {
   return {
     target: null,
+    maxTargetWidth: 2000,
+    maxTargetHeight: 2000,
     el: null,
     width: 800,
     height: 800,

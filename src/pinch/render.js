@@ -50,7 +50,7 @@ export function addRender (Pinch) {
   proto.load = function (target, callback) {
     const pinch = this
 
-    imageToCanvas(target, success)
+    imageToCanvas(target, success, { maxWidth: pinch.options.maxTargetWidth, maxHeight: pinch.options.maxTargetHeight })
 
     function success (canvas) {
       const { width, height, offset, loaded } = pinch.options
