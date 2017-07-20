@@ -59,8 +59,8 @@ Crop.prototype = {
 
     const wrapProps = {
       className: setClassName('wrap'),
-      width: el ? el.offsetWidth : docEl.clientWidth,
-      height: el ? el.offsetHeight : docEl.clientHeight,
+      width: el ? (el.offsetWidth ? el.offsetWidth : docEl.clientWidth) : docEl.clientWidth,
+      height: el ? (el.offsetHeight ? el.offsetHeight : docEl.clientHeight) : docEl.clientHeight,
       style: function () {
         return `
           .${this.className} {

@@ -252,7 +252,7 @@ Android 4+, iOS 6+
 
 ## License
 
-calendar is released under the [MIT License](http://desandro.mit-license.org/). Have at it.
+xcrop is released under the [MIT License](http://desandro.mit-license.org/). Have at it.
 
 
   [1]: http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg
