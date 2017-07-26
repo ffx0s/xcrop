@@ -14,7 +14,7 @@
     "cropping"
   ],
   "author": "99",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
     "babel-preset-es2015-rollup": "^3.0.0",
