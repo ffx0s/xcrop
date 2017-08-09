@@ -148,6 +148,89 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var get$1 = function get$1(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get$1(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
+};
+
 var isBase64Image = function isBase64Image(src) {
   return src.indexOf(';base64,') > 0;
 };
@@ -1334,99 +1417,50 @@ Crop.prototype = {
     }
     options.el.appendChild(crop.root.el);
 
-    crop.initPinch();
+    initPinch(crop);
 
-    setTimeout(bind(options.mounted, crop), 0);
-  },
-  initPinch: function initPinch() {
-    var crop = this;
-
-    function init() {
-      var _crop$options = crop.options,
-          target = _crop$options.target,
-          maxTargetWidth = _crop$options.maxTargetWidth,
-          maxTargetHeight = _crop$options.maxTargetHeight,
-          canvasScale = _crop$options.canvasScale,
-          x = _crop$options.x,
-          y = _crop$options.y,
-          el = _crop$options.el,
-          maxScale = _crop$options.maxScale,
-          minScale = _crop$options.minScale,
-          loaded = _crop$options.loaded;
-      var _crop$root = crop.root,
-          rootEl = _crop$root.el,
-          width = _crop$root.width,
-          height = _crop$root.height;
-
-      var pinchOptions = {
-        target: target,
-        maxTargetWidth: maxTargetWidth,
-        maxTargetHeight: maxTargetHeight,
-        el: el,
-        maxScale: maxScale,
-        minScale: minScale,
-        loaded: loaded,
-        width: width * canvasScale,
-        height: height * canvasScale,
-        touchTarget: rootEl,
-        offset: {
-          left: x,
-          right: width - crop.area.width - x,
-          top: y,
-          bottom: height - crop.area.height - y
-        }
-      };
-      crop.pinch = new Pinch(rootEl, pinchOptions);
-    }
-
-    setTimeout(init, 0);
+    setTimeout(options.mounted.call(crop), 0);
   },
   get: function get() {
-    var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85 };
 
     var crop = this;
     var pinch = crop.pinch;
-    var defaultConfig = { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85 };
-
-    var _extend = extend(defaultConfig, config),
-        width = _extend.width,
-        height = _extend.height,
-        type = _extend.type,
-        quality = _extend.quality;
-
-    var _pinch$options$offset = pinch.options.offset,
-        left = _pinch$options$offset.left,
-        top = _pinch$options$offset.top;
+    var width = config.width,
+        height = config.height,
+        type = config.type,
+        quality = config.quality;
 
     var scale = pinch.options.width / pinch.rect.width;
-    var x = left * scale;
-    var y = top * scale;
     var clipWidth = crop.area.width * scale;
     var clipHeight = crop.area.height * scale;
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
+    var defaultCanvas = getDefaultCanvas();
 
-    canvas.width = clipWidth;
-    canvas.height = clipHeight;
-
-    ctx.drawImage(pinch.canvas, x, y, clipWidth, clipHeight, 0, 0, clipWidth, clipHeight);
+    function getDefaultCanvas() {
+      var canvas = document.createElement('canvas');
+      var x = pinch.options.offset.left * scale;
+      var y = pinch.options.offset.top * scale;
+      var ctx = canvas.getContext('2d');
+      canvas.width = clipWidth;
+      canvas.height = clipHeight;
+      ctx.drawImage(pinch.canvas, x, y, clipWidth, clipHeight, 0, 0, clipWidth, clipHeight);
+      return canvas;
+    }
 
     var result = {};
     var value = width || height;
 
     if (value) {
       var clipScale = width ? width / clipWidth : height / clipHeight;
-      var curCanvas = value >= 150 ? scaleCanvas(canvas, clipScale) : antialisScale(canvas, clipScale);
-      // const curCanvas = antialisScale(canvas, clipScale)
-      // const curCanvas = scaleCanvas(canvas, clipScale)
+      var newCanvas = value >= 150 ? scaleCanvas(defaultCanvas, clipScale) : antialisScale(defaultCanvas, clipScale);
       result = {
-        canvas: curCanvas,
-        src: curCanvas.toDataURL(type, quality)
+        canvas: newCanvas,
+        src: newCanvas.toDataURL(type, quality)
       };
     } else {
       result = {
-        canvas: canvas,
-        src: canvas.toDataURL(type, quality)
+        canvas: defaultCanvas,
+        src: defaultCanvas.toDataURL(type, quality)
       };
     }
 
@@ -1441,7 +1475,7 @@ Crop.prototype = {
     crop.show();
     crop.pinch && crop.pinch.remove();
     crop.options.target = target;
-    crop.initPinch();
+    initPinch(crop);
   },
   show: function show() {
     this.root.el.style.display = 'block';
@@ -1462,12 +1496,54 @@ Crop.prototype = {
     this.pinch.scaleTo(point, zoom);
   }
 };
+
 Crop.count = 0;
 Crop.loadImage = imageToCanvas;
 Crop.Pinch = Pinch;
 
 function setClassName(name) {
   return 'crop-' + name;
+}
+
+function initPinch(crop) {
+  function init() {
+    var _crop$options = crop.options,
+        target = _crop$options.target,
+        maxTargetWidth = _crop$options.maxTargetWidth,
+        maxTargetHeight = _crop$options.maxTargetHeight,
+        canvasScale = _crop$options.canvasScale,
+        x = _crop$options.x,
+        y = _crop$options.y,
+        el = _crop$options.el,
+        maxScale = _crop$options.maxScale,
+        minScale = _crop$options.minScale,
+        loaded = _crop$options.loaded;
+    var _crop$root = crop.root,
+        touchTarget = _crop$root.el,
+        width = _crop$root.width,
+        height = _crop$root.height;
+
+    var pinchOptions = {
+      target: target,
+      maxTargetWidth: maxTargetWidth,
+      maxTargetHeight: maxTargetHeight,
+      el: el,
+      maxScale: maxScale,
+      minScale: minScale,
+      loaded: loaded,
+      touchTarget: touchTarget,
+      width: width * canvasScale,
+      height: height * canvasScale,
+      offset: {
+        left: x,
+        right: width - crop.area.width - x,
+        top: y,
+        bottom: height - crop.area.height - y
+      }
+    };
+    crop.pinch = new Pinch(touchTarget, pinchOptions);
+  }
+  setTimeout(init, 0);
 }
 
 return Crop;
