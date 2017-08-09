@@ -3,7 +3,7 @@
 ### 使用原生javascript，canvas实现的移动端裁剪插件，压缩后大小为16kb，无任何依赖。
 视频演示：[video](https://www.youtube.com/watch?v=vSI-6g_sG5U)
 
-<img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg" width="350" />
+<img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg?imageView2/2/w/350" width="350" />
 
 ## demo
 
@@ -255,4 +255,4 @@ Android 4+, iOS 6+
 xcrop is released under the [MIT License](http://desandro.mit-license.org/). Have at it.
 
 
-  [1]: http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg
+  [1]: http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg?imageView2/2/w/350
