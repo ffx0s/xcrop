@@ -1,23 +1,24 @@
+/**
+ * 空函数
+ */
 export function noop () {}
 
+/**
+ * 获取随机uid
+ * @returns {String} uid
+ */
 export const uuid = () => Math.random().toString(36).substring(3, 8)
 
-export function bind (fn, ctx) {
-  function boundFn (a) {
-    const l = arguments.length
-    return l
-      ? l > 1
-        ? fn.apply(ctx, arguments)
-        : fn.call(ctx, a)
-      : fn.call(ctx)
-  }
-  boundFn._length = fn.length
-  return boundFn
-}
 
-export function extend (to, _from) {
-  for (const key in _from) {
-    to[key] = _from[key]
+/**
+ * 对象合并
+ * @param {Object} target 目标对象
+ * @param {Object} object 属性将会合并到目标对象上
+ * @returns {Object} 返回目标对象
+ */
+export function extend (target, object) {
+  for (let key in object) {
+    target[key] = object[key]
   }
-  return to
+  return target
 }

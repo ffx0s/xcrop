@@ -14,8 +14,8 @@
   <script src="crop.js"></script>
   <script>
     var crop = null
-
-    document.getElementById('file-input').onchange = function (e) {
+    var fileInput = document.getElementById('file-input')
+    fileInput.onchange = function (e) {
       var file = e.target.files[0]
       if (!file) return false
       if (crop) {
@@ -27,8 +27,10 @@
           target: file,
           cancle: function () {
             this.hide()
+            fileInput.value = ''
           },
           confirm: function () {
+            fileInput.value = ''
             this.hide()
             createImage(this.get({width: 600}).url, 300)
             createImage(this.get({width: 300}).url, 150)

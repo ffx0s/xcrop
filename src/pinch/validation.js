@@ -1,4 +1,3 @@
-import { bind } from '../util/shared'
 import animate from '../util/animate'
 
 export function addValidation (Pinch) {
@@ -52,8 +51,8 @@ export function addValidation (Pinch) {
       initLastAnimate()
       animate({
         targets: [[0, x], [0, y]],
-        times: 150,
-        animate: bind(pinch._animate, pinch),
+        time: 150,
+        running: pinch._animate.bind(pinch),
         end () {
           pinch.isLock = false
           initLastAnimate()

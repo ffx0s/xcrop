@@ -1,4 +1,3 @@
-import { bind } from '../util/shared'
 import Observer from '../util/observer'
 
 function touchEach (touches, callback) {
@@ -184,7 +183,7 @@ export function addEvent (Pinch) {
 
   ;['on', 'off'].forEach(value => {
     proto[value] = function (name, fn) {
-      this.observer[value](name, fn && bind(fn, this))
+      this.observer[value](name, fn && fn.bind(this))
     }
   })
 }

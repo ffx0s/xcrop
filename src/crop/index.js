@@ -1,4 +1,4 @@
-import { noop, bind, extend } from '../util/shared'
+import { noop, extend } from '../util/shared'
 import { dataURItoBlob, URL } from '../util/file'
 import { scaleCanvas, antialisScale } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
@@ -6,40 +6,68 @@ import { Element, createElement, removeElement, renderStyle } from '../util/elem
 
 import Pinch from '../pinch/index'
 
+/**
+ * 获取裁剪默认选项
+ */
 function getDefaultOptions () {
   return {
+    // 目标对象，可以是File/Canvas/Image src
     target: null,
+    // 允许图片的最大width
     maxTargetWidth: 2000,
+    // 允许图片的最大height
     maxTargetHeight: 2000,
+    // 插入到el节点
     el: null,
+    // 裁剪框width
     width: 300,
+    // 裁剪框height
     height: 300,
+    // 图片初始x坐标
     x: undefined,
+    // 图片初始y坐标
     y: undefined,
+    // 允许缩放的最大比例
     maxScale: 2,
+    // 允许缩放的最小比例
     minScale: 1,
+    // canavs画布比例
     canvasScale: 2,
+    // 绑定事件的节点
     touchTarget: null,
-    created: noop,
-    mounted: noop,
-    loaded: noop,
+    // 生命周期函数
+    created: noop, // 创建完成
+    mounted: noop, // 已插入到html节点
+    loaded: noop,  // 裁剪图片加载完成
+    // 取消事件回调
     cancle: noop,
+    // 确认事件回调
     confirm: noop
   }
 }
 
+/**
+ * 裁剪对象
+ * @param {Object} options 裁剪选项
+ */
 function Crop (options) {
   this.init(options)
 }
 
 Crop.prototype = {
+  /**
+   * 初始化
+   * @param {Object} options 裁剪选项
+   */
   init: function (options) {
-    const crop = this
-    crop.options = extend(getDefaultOptions(), options)
-    crop.create()
-    crop.render()
+    this.options = extend(getDefaultOptions(), options)
+    this.create()
+    this.render()
     Crop.count ++
   },
+  /**
+   * 创建dom节点
+   */
   create: function () {
     const crop = this
     const options = crop.options
@@ -57,8 +85,9 @@ Crop.prototype = {
     const height = options.height
     const docEl = document.documentElement
 
+    // 裁剪最外层div
     const wrapProps = {
-      className: setClassName('wrap'),
+      className: 'crop-wrap',
       width: el ? (el.offsetWidth ? el.offsetWidth : docEl.clientWidth) : docEl.clientWidth,
       height: el ? (el.offsetHeight ? el.offsetHeight : docEl.clientHeight) : docEl.clientHeight,
       style: function () {
@@ -76,8 +105,9 @@ Crop.prototype = {
         `
       }
     }
+    // 遮罩层
     const maskProps = {
-      className: setClassName('mask'),
+      className: 'crop-mask',
       left: typeof options.x === 'number' ? options.x - wrapProps.width : -(width + wrapProps.width) / 2,
       top: typeof options.y === 'number' ? options.y - wrapProps.height : -(height + wrapProps.height) / 2,
       style: function () {
@@ -112,9 +142,9 @@ Crop.prototype = {
         `
       }
     }
-
+    // 底部按钮外层div
     const handleProps = {
-      className: setClassName('handle'),
+      className: 'crop-handle',
       style: function () {
         return `
           .${this.className} {
@@ -136,8 +166,9 @@ Crop.prototype = {
         `
       }
     }
+    // 取消按钮
     const cancleProps = {
-      className: setClassName('cancle'),
+      className: 'crop-cancle',
       style: function () {
         return `
           .${this.className} {
@@ -146,11 +177,12 @@ Crop.prototype = {
         `
       },
       events: {
-        touchstart: bind(options.cancle, crop)
+        touchstart: options.cancle.bind(crop)
       }
     }
+    // 确认按钮
     const confirmProps = {
-      className: setClassName('confirm'),
+      className: 'crop-confirm',
       style: function () {
         return `
           .${this.className} {
@@ -159,10 +191,11 @@ Crop.prototype = {
         `
       },
       events: {
-        touchstart: bind(options.confirm, crop)
+        touchstart: options.confirm.bind(crop)
       }
     }
 
+    // 实例化节点对象
     crop.root = new Element('div', wrapProps, [
       new Element('div', maskProps),
       new Element('div', handleProps, [
@@ -171,6 +204,7 @@ Crop.prototype = {
       ])
     ])
 
+    // 创建dom节点
     createElement(crop.root, function (element) {
       element.style && styles.push(element.style())
     })
@@ -268,10 +302,6 @@ Crop.prototype = {
 Crop.count = 0
 Crop.loadImage = imageToCanvas
 Crop.Pinch = Pinch
-
-function setClassName (name) {
-  return `crop-${name}`
-}
 
 function initPinch (crop) {
   function init () {

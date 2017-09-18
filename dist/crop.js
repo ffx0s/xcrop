@@ -4,24 +4,28 @@
   (global.Crop = factory());
 }(this, (function () { 'use strict';
 
+/**
+ * 空函数
+ */
 function noop() {}
 
+/**
+ * 获取随机uid
+ * @returns {String} uid
+ */
 
 
-function bind(fn, ctx) {
-  function boundFn(a) {
-    var l = arguments.length;
-    return l ? l > 1 ? fn.apply(ctx, arguments) : fn.call(ctx, a) : fn.call(ctx);
+/**
+ * 对象合并
+ * @param {Object} target 目标对象
+ * @param {Object} object 属性将会合并到目标对象上
+ * @returns {Object} 返回目标对象
+ */
+function extend(target, object) {
+  for (var key in object) {
+    target[key] = object[key];
   }
-  boundFn._length = fn.length;
-  return boundFn;
-}
-
-function extend(to, _from) {
-  for (var key in _from) {
-    to[key] = _from[key];
-  }
-  return to;
+  return target;
 }
 
 var URL = window.URL && window.URL.createObjectURL ? window.URL : window.webkitURL && window.webkitURL.createObjectURL ? window.webkitURL : null;
@@ -146,89 +150,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return typeof obj;
 } : function (obj) {
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var get$1 = function get$1(object, property, receiver) {
-  if (object === null) object = Function.prototype;
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent === null) {
-      return undefined;
-    } else {
-      return get$1(parent, property, receiver);
-    }
-  } else if ("value" in desc) {
-    return desc.value;
-  } else {
-    var getter = desc.get;
-
-    if (getter === undefined) {
-      return undefined;
-    }
-
-    return getter.call(receiver);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var set = function set(object, property, value, receiver) {
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent !== null) {
-      set(parent, property, value, receiver);
-    }
-  } else if ("value" in desc && desc.writable) {
-    desc.value = value;
-  } else {
-    var setter = desc.set;
-
-    if (setter !== undefined) {
-      setter.call(receiver, value);
-    }
-  }
-
-  return value;
 };
 
 var isBase64Image = function isBase64Image(src) {
@@ -507,6 +428,10 @@ function createCanvas(img, orientation, callback, doSquash, options) {
   callback(canvas);
 }
 
+/**
+ * 简单封装创建节点和绑定移除事件的操作
+ */
+
 function Element(tagName, attr) {
   var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
@@ -518,12 +443,17 @@ function Element(tagName, attr) {
 }
 
 Element.prototype = {
+  // 创建节点
   create: function create() {
     this.el = document.createElement(this.tagName);
     this.el.className = this.className;
     this.addEvent();
     return this.el;
   }
+
+  /**
+   * 绑定/移除事件方法
+   */
 };['addEvent', 'removeEvent'].forEach(function (value) {
   Element.prototype[value] = function () {
     for (var eventName in this.events) {
@@ -532,6 +462,11 @@ Element.prototype = {
   };
 });
 
+/**
+ * 创建dom节点
+ * @param {Object} element Element实例化的对象
+ * @param {Function} callback 创建完成回调
+ */
 function createElement(element) {
   var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : noop;
 
@@ -543,6 +478,7 @@ function createElement(element) {
 
   var node = element.create();
 
+  // 如果有子节点，则递归调用创建
   element.children.forEach(function (child) {
     var childNode = createElement(child, callback);
     node.appendChild(childNode);
@@ -553,27 +489,35 @@ function createElement(element) {
   return node;
 }
 
-function removeElement(element, targetElem) {
-  var value = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
+/**
+ * 从html中移除dom节点及绑定事件
+ * @param {Object} element Element实例化的对象
+ * @param {Boolean} flag 是否从html中移除节点
+ */
+function removeElement(element, flag) {
   if (typeof element === 'string') return;
   element.children.forEach(function (child) {
-    removeElement(child, targetElem, false);
+    removeElement(child, false);
   });
   element.removeEvent();
-  if (value) {
-    targetElem.removeChild(element.el);
+  if (flag) {
+    document.body.removeChild(element.el);
   }
 }
 
-function renderStyle(css) {
+/**
+ * 渲染样式
+ * @param {String} cssText css样式
+ * @param {Element} elem css插入节点
+ */
+function renderStyle(cssText) {
   var elem = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : document.getElementsByTagName('head')[0];
 
   var styleElem = document.createElement('style');
   try {
-    styleElem.appendChild(document.createTextNode(css));
+    styleElem.appendChild(document.createTextNode(cssText));
   } catch (err) {
-    styleElem.stylesheet.cssText = css;
+    styleElem.stylesheet.cssText = cssText;
   }
   elem.appendChild(styleElem);
   return styleElem;
@@ -802,7 +746,7 @@ function addEvent(Pinch) {
     this.observer.emit.apply(this.observer, arguments);
   };['on', 'off'].forEach(function (value) {
     proto[value] = function (name, fn) {
-      this.observer[value](name, fn && bind(fn, this));
+      this.observer[value](name, fn && fn.bind(this));
     };
   });
 }
@@ -955,190 +899,290 @@ function addRender(Pinch) {
   };
 }
 
-var Tween = {
-  /*
-   * t : 当前时间   b : 初始值  c : 变化值   d : 总时间
-   * return : 当前的位置
-   *
-  */
-  // linear: function (t, b, c, d) {  // 匀速
-  //   return c * t / d + b
-  // },
-  // easeIn: function (t, b, c, d) {  // 加速曲线
-  //   return c * (t /= d) * t + b
-  // },
-  easeOut: function easeOut(t, b, c, d) {
-    // 减速曲线
+/**
+ * 缓动函数
+ */
+var Easing = {
+  linear: function linear(t, b, c, d) {
+    return c * t / d + b;
+  },
+  easeInQuad: function easeInQuad(t, b, c, d) {
+    return c * (t /= d) * t + b;
+  },
+  easeOutQuad: function easeOutQuad(t, b, c, d) {
     return -c * (t /= d) * (t - 2) + b;
+  },
+
+  easeOutStrong: function easeOutStrong(t, b, c, d) {
+    return -c * ((t = t / d - 1) * t * t * t - 1) + b;
+  },
+  easeInOutQuad: function easeInOutQuad(t, b, c, d) {
+    if ((t /= d / 2) < 1) {
+      return c / 2 * t * t + b;
+    } else {
+      return -c / 2 * (--t * (t - 2) - 1) + b;
+    }
+  },
+  easeInCubic: function easeInCubic(t, b, c, d) {
+    return c * (t /= d) * t * t + b;
+  },
+  easeOutCubic: function easeOutCubic(t, b, c, d) {
+    return c * ((t = t / d - 1) * t * t + 1) + b;
+  },
+  easeInOutCubic: function easeInOutCubic(t, b, c, d) {
+    if ((t /= d / 2) < 1) {
+      return c / 2 * t * t * t + b;
+    } else {
+      return c / 2 * ((t -= 2) * t * t + 2) + b;
+    }
+  },
+  easeInQuart: function easeInQuart(t, b, c, d) {
+    return c * (t /= d) * t * t * t + b;
+  },
+  easeOutQuart: function easeOutQuart(t, b, c, d) {
+    return -c * ((t = t / d - 1) * t * t * t - 1) + b;
+  },
+  easeInOutQuart: function easeInOutQuart(t, b, c, d) {
+    if ((t /= d / 2) < 1) {
+      return c / 2 * t * t * t * t + b;
+    } else {
+      return -c / 2 * ((t -= 2) * t * t * t - 2) + b;
+    }
+  },
+  easeInQuint: function easeInQuint(t, b, c, d) {
+    return c * (t /= d) * t * t * t * t + b;
+  },
+  easeOutQuint: function easeOutQuint(t, b, c, d) {
+    return c * ((t = t / d - 1) * t * t * t * t + 1) + b;
+  },
+  easeInOutQuint: function easeInOutQuint(t, b, c, d) {
+    if ((t /= d / 2) < 1) {
+      return c / 2 * t * t * t * t * t + b;
+    } else {
+      return c / 2 * ((t -= 2) * t * t * t * t + 2) + b;
+    }
+  },
+  easeInSine: function easeInSine(t, b, c, d) {
+    return -c * Math.cos(t / d * (Math.PI / 2)) + c + b;
+  },
+  easeOutSine: function easeOutSine(t, b, c, d) {
+    return c * Math.sin(t / d * (Math.PI / 2)) + b;
+  },
+  easeInOutSine: function easeInOutSine(t, b, c, d) {
+    return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b;
+  },
+  easeInExpo: function easeInExpo(t, b, c, d) {
+    var _ref;
+    return (_ref = t === 0) !== null ? _ref : {
+      b: c * Math.pow(2, 10 * (t / d - 1)) + b
+    };
+  },
+  easeOutExpo: function easeOutExpo(t, b, c, d) {
+    var _ref;
+    return (_ref = t === d) !== null ? _ref : b + {
+      c: c * (-Math.pow(2, -10 * t / d) + 1) + b
+    };
+  },
+  easeInOutExpo: function easeInOutExpo(t, b, c, d) {
+    if (t === 0) {}
+    if (t === d) {
+      // b + c
+    }
+    if ((t /= d / 2) < 1) {
+      return c / 2 * Math.pow(2, 10 * (t - 1)) + b;
+    } else {
+      return c / 2 * (-Math.pow(2, -10 * --t) + 2) + b;
+    }
+  },
+  easeInCirc: function easeInCirc(t, b, c, d) {
+    return -c * (Math.sqrt(1 - (t /= d) * t) - 1) + b;
+  },
+  easeOutCirc: function easeOutCirc(t, b, c, d) {
+    return c * Math.sqrt(1 - (t = t / d - 1) * t) + b;
+  },
+  easeInOutCirc: function easeInOutCirc(t, b, c, d) {
+    if ((t /= d / 2) < 1) {
+      return -c / 2 * (Math.sqrt(1 - t * t) - 1) + b;
+    } else {
+      return c / 2 * (Math.sqrt(1 - (t -= 2) * t) + 1) + b;
+    }
+  },
+  easeInElastic: function easeInElastic(t, b, c, d) {
+    var a, p, s;
+    s = 1.70158;
+    p = 0;
+    a = c;
+    if (t === 0) {
+      // b
+    } else if ((t /= d) === 1) {
+      // b + c
+    }
+    if (!p) {
+      p = d * 0.3;
+    }
+    if (a < Math.abs(c)) {
+      a = c;
+      s = p / 4;
+    } else {
+      s = p / (2 * Math.PI) * Math.asin(c / a);
+    }
+    return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
+  },
+  easeOutElastic: function easeOutElastic(t, b, c, d) {
+    var a, p, s;
+    s = 1.70158;
+    p = 0;
+    a = c;
+    if (t === 0) {
+      // b
+    } else if ((t /= d) === 1) {
+      // b + c
+    }
+    if (!p) {
+      p = d * 0.3;
+    }
+    if (a < Math.abs(c)) {
+      a = c;
+      s = p / 4;
+    } else {
+      s = p / (2 * Math.PI) * Math.asin(c / a);
+    }
+    return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
+  },
+  easeInOutElastic: function easeInOutElastic(t, b, c, d) {
+    var a, p, s;
+    s = 1.70158;
+    p = 0;
+    a = c;
+    if (t === 0) {
+      // b
+    } else if ((t /= d / 2) === 2) {
+      // b + c
+    }
+    if (!p) {
+      p = d * (0.3 * 1.5);
+    }
+    if (a < Math.abs(c)) {
+      a = c;
+      s = p / 4;
+    } else {
+      s = p / (2 * Math.PI) * Math.asin(c / a);
+    }
+    if (t < 1) {
+      return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
+    } else {
+      return a * Math.pow(2, -10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p) * 0.5 + c + b;
+    }
+  },
+  easeInBack: function easeInBack(t, b, c, d, s) {
+    if (s === void 0) {
+      s = 1.70158;
+    }
+    return c * (t /= d) * t * ((s + 1) * t - s) + b;
+  },
+  easeOutBack: function easeOutBack(t, b, c, d, s) {
+    if (s === void 0) {
+      s = 1.70158;
+    }
+    return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
+  },
+  easeInOutBack: function easeInOutBack(t, b, c, d, s) {
+    if (s === void 0) {
+      s = 1.70158;
+    }
+    if ((t /= d / 2) < 1) {
+      return c / 2 * (t * t * (((s *= 1.525) + 1) * t - s)) + b;
+    } else {
+      return c / 2 * ((t -= 2) * t * (((s *= 1.525) + 1) * t + s) + 2) + b;
+    }
+  },
+  easeInBounce: function easeInBounce(t, b, c, d) {
+    var v;
+    v = Easing.easeOutBounce(d - t, 0, c, d);
+    return c - v + b;
+  },
+  easeOutBounce: function easeOutBounce(t, b, c, d) {
+    if ((t /= d) < 1 / 2.75) {
+      return c * (7.5625 * t * t) + b;
+    } else if (t < 2 / 2.75) {
+      return c * (7.5625 * (t -= 1.5 / 2.75) * t + 0.75) + b;
+    } else if (t < 2.5 / 2.75) {
+      return c * (7.5625 * (t -= 2.25 / 2.75) * t + 0.9375) + b;
+    } else {
+      return c * (7.5625 * (t -= 2.625 / 2.75) * t + 0.984375) + b;
+    }
+  },
+  easeInOutBounce: function easeInOutBounce(t, b, c, d) {
+    var v;
+    if (t < d / 2) {
+      v = Easing.easeInBounce(t * 2, 0, c, d);
+      return v * 0.5 + b;
+    } else {
+      v = Easing.easeOutBounce(t * 2 - d, 0, c, d);
+      return v * 0.5 + c * 0.5 + b;
+    }
   }
-  // easeBoth: function (t, b, c, d) {  // 加速减速曲线
-  //   if ((t /= d / 2) < 1) {
-  //     return c / 2 * t * t + b
-  //   }
-  //   return -c / 2 * ((--t) * (t - 2) - 1) + b
-  // },
-  // easeInStrong: function (t, b, c, d) {  // 加加速曲线
-  //   return c * (t /= d) * t * t * t + b
-  // },
-  // easeOutStrong: function (t, b, c, d) {  // 减减速曲线
-  //   return -c * ((t = t / d - 1) * t * t * t - 1) + b
-  // },
-  // easeBothStrong: function (t, b, c, d) {  // 加加速减减速曲线
-  //   if ((t /= d / 2) < 1) {
-  //     return c / 2 * t * t * t * t + b
-  //   }
-  //   return -c / 2 * ((t -= 2) * t * t * t - 2) + b
-  // },
-  // elasticIn: function (t, b, c, d, a, p) {  // 正弦衰减曲线（弹动渐入）
-  //   if (t === 0) {
-  //     return b
-  //   }
-  //   if ((t /= d) == 1) {
-  //     return b + c
-  //   }
-  //   if (!p) {
-  //     p = d * 0.3
-  //   }
-  //   if (!a || a < Math.abs(c)) {
-  //     a = c
-  //     let s = p / 4
-  //   } else {
-  //     let s = p / (2 * Math.PI) * Math.asin(c / a)
-  //   }
-  //   return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b
-  // },
-  // elasticOut: function (t, b, c, d, a, p) {    // 正弦增强曲线（弹动渐出）
-  //   if (t === 0) {
-  //     return b
-  //   }
-  //   if ((t /= d) == 1) {
-  //     return b + c
-  //   }
-  //   if (!p) {
-  //     p = d * 0.3
-  //   }
-  //   if (!a || a < Math.abs(c)) {
-  //     a = c
-  //     let s = p / 4
-  //   } else {
-  //     let s = p / (2 * Math.PI) * Math.asin(c / a)
-  //   }
-  //   return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b
-  // },
-  // elasticBoth: function (t, b, c, d, a, p) {
-  //   if (t === 0) {
-  //     return b
-  //   }
-  //   if ((t /= d / 2) == 2) {
-  //     return b + c
-  //   }
-  //   if (!p) {
-  //     p = d * (0.3 * 1.5)
-  //   }
-  //   if (!a || a < Math.abs(c)) {
-  //     a = c
-  //     let s = p / 4
-  //   }
-  //   else {
-  //     let s = p / (2 * Math.PI) * Math.asin(c / a)
-  //   }
-  //   if (t < 1) {
-  //     return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) *
-  //       Math.sin((t * d - s) * (2 * Math.PI) / p)) + b
-  //   }
-  //   return a * Math.pow(2, -10 * (t -= 1)) *
-  //     Math.sin((t * d - s) * (2 * Math.PI) / p) * 0.5 + c + b
-  // },
-  // backIn: function (t, b, c, d, s) {     // 回退加速（回退渐入）
-  //   if (typeof s == 'undefined') {
-  //     s = 1.70158
-  //   }
-  //   return c * (t /= d) * t * ((s + 1) * t - s) + b
-  // },
-  // backOut: function (t, b, c, d, s) {
-  //   if (typeof s == 'undefined') {
-  //     s = 3.70158  // 回缩的距离
-  //   }
-  //   return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b
-  // },
-  // backBoth: function (t, b, c, d, s) {
-  //   if (typeof s == 'undefined') {
-  //     s = 1.70158
-  //   }
-  //   if ((t /= d / 2) < 1) {
-  //     return c / 2 * (t * t * (((s *= (1.525)) + 1) * t - s)) + b
-  //   }
-  //   return c / 2 * ((t -= 2) * t * (((s *= (1.525)) + 1) * t + s) + 2) + b
-  // },
-  // bounceIn: function (t, b, c, d) {    // 弹球减振（弹球渐出）
-  //   return c - Tween['bounceOut'](d - t, 0, c, d) + b
-  // },
-  // bounceOut: function (t, b, c, d) {
-  //   if ((t /= d) < (1 / 2.75)) {
-  //     return c * (7.5625 * t * t) + b
-  //   } else if (t < (2 / 2.75)) {
-  //     return c * (7.5625 * (t -= (1.5 / 2.75)) * t + 0.75) + b
-  //   } else if (t < (2.5 / 2.75)) {
-  //     return c * (7.5625 * (t -= (2.25 / 2.75)) * t + 0.9375) + b
-  //   }
-  //   return c * (7.5625 * (t -= (2.625 / 2.75)) * t + 0.984375) + b
-  // },
-  // bounceBoth: function (t, b, c, d) {
-  //   if (t < d / 2) {
-  //     return Tween['bounceIn'](t * 2, 0, c, d) * 0.5 + b
-  //   }
-  //   return Tween['bounceOut'](t * 2 - d, 0, c, d) * 0.5 + c * 0.5 + b
-  // }
 };
 
-var requestAnimationFrame = function () {
-  return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
-    return window.setTimeout(callback, 1000 / 60);
-  };
-}();
+var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
+  return window.setTimeout(callback, 1000 / 60);
+};
 
-var cancelAnimationFrame = function () {
-  return window.cancelAnimationFrame || window.mozCancelAnimationFrame || function (id) {
-    clearTimeout(id);
-  };
-}();
+// cancelAnimationFrame 兼容处理
+var cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame || function (id) {
+  clearTimeout(id);
+};
 
+/**
+ * 获取当前时间戳
+ * @returns {Number} 时间戳
+ */
 var now = function now() {
   return new Date().getTime();
 };
 
+/**
+ * 动画执行函数，仅在opiotns.running函数返回数值，不做具体元素的动画操作
+ * @param {Object} options 选项
+ * @property {Number} [options.time = 500] 在指定时间（ms）内完成动画，默认500ms
+ * @property {String} [options.type = 'easeOutQuad'] 动画类型，默认linear
+ * @property {Array} options.targets - 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
+ * @property {Function} options.running - options.targets数值变化过程会执行这个函数
+ * @property {Function} options.end - 结束后的回调函数
+ */
 var animate = function (options) {
-  var _options$times = options.times,
-      times = _options$times === undefined ? 500 : _options$times,
+  var timer = null;
+  var _options$time = options.time,
+      time = _options$time === undefined ? 500 : _options$time,
       _options$type = options.type,
-      type = _options$type === undefined ? 'easeOut' : _options$type,
+      type = _options$type === undefined ? 'easeOutQuad' : _options$type,
       targets = options.targets,
-      animate = options.animate,
+      running = options.running,
       end = options.end;
 
   var startTime = now();
 
   function step() {
     var changeTime = now();
-    var scale = 1 - Math.max(0, startTime - changeTime + times) / times;
+    var scale = 1 - (Math.max(0, startTime - changeTime + time) / time || 0);
     var value = [];
 
     targets.forEach(function (target) {
-      value.push(Tween[type](scale * times, target[0], target[1] - target[0], times));
+      var currentValue = target[0] === target[1] ? target[0] : Easing[type](scale * time, target[0], target[1] - target[0], time) || 0;
+      value.push(currentValue);
     });
 
-    animate(value);
+    running(value);
 
     if (scale === 1) {
-      cancelAnimationFrame(animate.timer);
+      cancelAnimationFrame(timer);
       end && end();
     } else {
-      requestAnimationFrame(step);
+      timer = requestAnimationFrame(step);
     }
   }
 
-  cancelAnimationFrame(animate.timer);
-  animate.timer = requestAnimationFrame(step);
+  timer = requestAnimationFrame(step);
 };
 
 function addValidation(Pinch) {
@@ -1197,8 +1241,8 @@ function addValidation(Pinch) {
       initLastAnimate();
       animate({
         targets: [[0, x], [0, y]],
-        times: 150,
-        animate: bind(pinch._animate, pinch),
+        time: 150,
+        running: pinch._animate.bind(pinch),
         end: function end() {
           pinch.isLock = false;
           initLastAnimate();
@@ -1306,40 +1350,68 @@ addEvent(Pinch);
 addRender(Pinch);
 addValidation(Pinch);
 
+/**
+ * 获取裁剪默认选项
+ */
 function getDefaultOptions() {
   return {
+    // 目标对象，可以是File/Canvas/Image src
     target: null,
+    // 允许图片的最大width
     maxTargetWidth: 2000,
+    // 允许图片的最大height
     maxTargetHeight: 2000,
+    // 插入到el节点
     el: null,
+    // 裁剪框width
     width: 300,
+    // 裁剪框height
     height: 300,
+    // 图片初始x坐标
     x: undefined,
+    // 图片初始y坐标
     y: undefined,
+    // 允许缩放的最大比例
     maxScale: 2,
+    // 允许缩放的最小比例
     minScale: 1,
+    // canavs画布比例
     canvasScale: 2,
+    // 绑定事件的节点
     touchTarget: null,
-    created: noop,
-    mounted: noop,
-    loaded: noop,
+    // 生命周期函数
+    created: noop, // 创建完成
+    mounted: noop, // 已插入到html节点
+    loaded: noop, // 裁剪图片加载完成
+    // 取消事件回调
     cancle: noop,
+    // 确认事件回调
     confirm: noop
   };
 }
 
+/**
+ * 裁剪对象
+ * @param {Object} options 裁剪选项
+ */
 function Crop(options) {
   this.init(options);
 }
 
 Crop.prototype = {
+  /**
+   * 初始化
+   * @param {Object} options 裁剪选项
+   */
   init: function init(options) {
-    var crop = this;
-    crop.options = extend(getDefaultOptions(), options);
-    crop.create();
-    crop.render();
+    this.options = extend(getDefaultOptions(), options);
+    this.create();
+    this.render();
     Crop.count++;
   },
+  /**
+   * 创建dom节点
+   */
   create: function create() {
     var crop = this;
     var options = crop.options;
@@ -1353,50 +1425,51 @@ Crop.prototype = {
     var height = options.height;
     var docEl = document.documentElement;
 
+    // 裁剪最外层div
     var wrapProps = {
-      className: setClassName('wrap'),
+      className: 'crop-wrap',
       width: el ? el.offsetWidth ? el.offsetWidth : docEl.clientWidth : docEl.clientWidth,
       height: el ? el.offsetHeight ? el.offsetHeight : docEl.clientHeight : docEl.clientHeight,
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n            z-index: 99;\n          }\n        ';
       }
-    };
-    var maskProps = {
-      className: setClassName('mask'),
+      // 遮罩层
+    };var maskProps = {
+      className: 'crop-mask',
       left: typeof options.x === 'number' ? options.x - wrapProps.width : -(width + wrapProps.width) / 2,
       top: typeof options.y === 'number' ? options.y - wrapProps.height : -(height + wrapProps.height) / 2,
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: absolute; \n            left: ' + this.left + 'px;\n            top: ' + this.top + 'px;\n            width: ' + width + 'px; \n            height: ' + height + 'px; \n            overflow: hidden;\n            border: 1px solid rgba(0, 0, 0, .6);\n            border-width: ' + wrapProps.height + 'px ' + wrapProps.width + 'px;\n            box-sizing: content-box;\n          }\n          .' + this.className + ':after {\n            position: absolute;\n            left: 0;\n            top: 0;\n            float: left;\n            content: \'\';\n            width: 200%;\n            height: 200%;\n            border: 1px solid #fff;\n            -webkit-box-sizing: border-box;\n            box-sizing: border-box;\n            -webkit-transform: scale(0.5);\n            transform: scale(0.5);\n            -webkit-transform-origin: 0 0;\n            transform-origin: 0 0;\n          }\n        ';
       }
-    };
-
-    var handleProps = {
-      className: setClassName('handle'),
+      // 底部按钮外层div
+    };var handleProps = {
+      className: 'crop-handle',
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: absolute;\n            bottom: 0;\n            left: 0;\n            width: 100%;\n            height: 50px;\n            line-height: 50px;\n            background-color: rgba(0,0,0,.3);\n          }\n          .' + this.className + ' > div {\n            height: 100px;\n            width: 80px;\n            color: #fff;\n            font-size: 16px;\n            text-align: center;\n          }\n        ';
       }
-    };
-    var cancleProps = {
-      className: setClassName('cancle'),
+      // 取消按钮
+    };var cancleProps = {
+      className: 'crop-cancle',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: left;\n          }\n        ';
       },
       events: {
-        touchstart: bind(options.cancle, crop)
+        touchstart: options.cancle.bind(crop)
       }
-    };
-    var confirmProps = {
-      className: setClassName('confirm'),
+      // 确认按钮
+    };var confirmProps = {
+      className: 'crop-confirm',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: right;\n          }\n        ';
       },
       events: {
-        touchstart: bind(options.confirm, crop)
+        touchstart: options.confirm.bind(crop)
       }
-    };
 
-    crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
+      // 实例化节点对象
+    };crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
 
+    // 创建dom节点
     createElement(crop.root, function (element) {
       element.style && styles.push(element.style());
     });
@@ -1500,10 +1573,6 @@ Crop.prototype = {
 Crop.count = 0;
 Crop.loadImage = imageToCanvas;
 Crop.Pinch = Pinch;
-
-function setClassName(name) {
-  return 'crop-' + name;
-}
 
 function initPinch(crop) {
   function init() {
