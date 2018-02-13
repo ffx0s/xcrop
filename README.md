@@ -1,13 +1,11 @@
 # 移动端裁剪
 
-### 使用原生javascript，canvas实现的移动端裁剪插件，压缩后大小为16kb，无任何依赖。
-视频演示：[video](https://www.youtube.com/watch?v=vSI-6g_sG5U)
+### 使用原生javascript，基于canvas实现的移动端裁剪插件，压缩后大小为22KB，无任何依赖。  
+效果：[gif] (https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)
 
 <img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg?imageView2/2/w/350" width="350" />
 
-## demo
-
-[https://ffx0s.github.io/xcrop/dist/crop.html](https://ffx0s.github.io/xcrop/dist/crop.html)
+## Demo
 
 <img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-qrcode.png" />
 
@@ -23,7 +21,6 @@ import Crop from 'xcrop'
 const options = {
   width: 300,
   height: 300,
-  target: 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
   cancle: function () {
     this.hide()
   },
@@ -32,7 +29,9 @@ const options = {
     console.log(this.get({width: 600}))
   }
 }
+const file = 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg'
 const crop = new Crop(options)
+crop.load(file)
 ```
 
 或者：
@@ -44,7 +43,6 @@ const crop = new Crop(options)
   var options = {
     width: 300,
     height: 300,
-    target: 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
     cancle: function () {
       this.hide()
     },
@@ -53,7 +51,9 @@ const crop = new Crop(options)
       console.log(this.get({width: 600}))
     }
   }
+  var file = 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg'
   var crop = new Crop(options)
+  crop.load(file)
 </script>
 ```
 
@@ -83,26 +83,12 @@ height: 300
 
 裁剪框高度.
 
-### target
-
-**Type:** _String_, _Element_ or _File_
-
-``` js
-target: 'http://xxx.jpg'
-target: 'data:image/jpeg;base64,xxxxxx'
-target: 'blob:http://localhost/24dfe01f-d581-4618-b595-f179cadc4e2f'
-target: document.getElementById('image')
-target: document.getElementById('canvas')
-```
-
-裁剪图片目标，支持二进制、base64、imageElement、objectUrl和canvas.
-
 ### maxScale
 
 **Type:** _Number_
 
 ``` js
-maxScale: 1.5
+maxScale: 2
 ```
 
 可以缩放的最大比例, 默认值是2倍
@@ -138,6 +124,17 @@ loaded: function () {}
 图片加载完成的回调函数
 
 ## 实例方法
+  
+### load
+**Type:** _Function_
+
+``` js
+/**
+ * 加载裁剪图片.
+ * @param {(string|file|element)} target - 图片目标，可以是二进制、base64、imageElement、objectUrl或者canvas.
+ */
+this.load(target)
+```  
 
 ### get
 **Type:** _Function_
@@ -148,9 +145,10 @@ loaded: function () {}
  * @param {object} options
  * @property {number} options.width - 裁剪宽度，默认值为裁剪框的width
  * @property {number} options.height - 裁剪高度，默认值为裁剪框的height
- * @property {string} options.type - 图片格式，默认'image/jpeg'
+ * @property {string} options.type - 图片类型，默认'image/jpeg'
  * @property {number} options.quality - 图片质量，默认0.85，取值区间0~1
- * @return {object} 裁剪后的图片信息
+ * @property {string} options.format - 裁剪图片的格式，影响最终返回的结果，默认 'canvas'， 可选：canvas、src、blob、url
+ * @return {object} 裁剪后的图片数据
  */
  
 var options = {
@@ -161,49 +159,38 @@ var options = {
 }
 this.get(options)
 
-输出： 
+返回结果为以下对象中的一个：
 {
   // 文件对象
   blob: Blob,
   // canvas element
   canvas: canvas,
-  // base64图片地址
+  // base64
   src: 'data:image/jpeg;base64,/xxxx',
-  // objectUrl地址
+  // objectUrl
   url: 'blob:http://localhost/24dfe01f-d581-4618-b595-f179cadc4e2f'
 }
-```
+```  
 
 ### moveTo
 **Type:** _Function_
 
 ``` js
 /**
- * 图片移动函数，以左上角为原点（不是以裁剪框为原点），移动到x，y坐标.
+ * 图片移动函数，以裁剪组件的左上角为原点，而不是以裁剪区域为原点，移动到x，y坐标.
  * @param {number} x - x坐标.
  * @param {number} y - y坐标.
  */
 this.moveTo(x, y)
 ```
 
-### load
-**Type:** _Function_
-
-``` js
-/**
- * 加载裁剪图片，实例化之后需要更换图片可以调用这个.
- * @param {(string|file|element)} target - 更换的图片，值可以是二进制、base64、imageElement、objectUrl或者canvas.
- */
-this.load(target)
-```
-
 ### show/hide
 **Type:** _Function_
 
 ``` js
-// 显示，改变css的display为block
+// 显示组件
 this.show()
-// 隐藏，改变css的display为none
+// 隐藏组件
 this.hide()
 ```
 
@@ -211,7 +198,7 @@ this.hide()
 **Type:** _Function_
 
 ``` js
-// 从dom节点上移除
+// 销毁组件
 this.destroy()
 ```
 
@@ -222,7 +209,7 @@ this.destroy()
 
 ``` js
 /**
- * 图片加载函数，会自动更正图片的方向问题.
+ * 图片加载函数，会自动更正图片的方向、图片像素过大等问题.
  * @param {(string|file|element)} target - 目标，值可以是二进制、base64、imageElement、objectUrl或者canvas.
  * @param {function} callback - 加载完成后的回调函数，function callback(canvas) {...}.
  */
@@ -236,9 +223,9 @@ Crop.loadImage(target, callback)
 const crop = new Crop({
   mounted: function () {
     const pinch = this.pinch
-    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(value => {
-      pinch.on(value, function (e) {
-        console.log(value)
+    ;['dragstart', 'dragmove', 'dragend', 'pinchstart', 'pinchmove', 'pinchend'].forEach(eventName => {
+      pinch.on(eventName, function (e) {
+        console.log(eventName)
       })
     })
   }
@@ -247,7 +234,7 @@ const crop = new Crop({
 
 ## Browser support
 
-Android 4+, iOS 6+
+Android 4.2+, iOS 8+
 
 
 ## License
