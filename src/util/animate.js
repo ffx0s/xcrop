@@ -29,9 +29,9 @@ const now = () => new Date().getTime()
  * @param {Object} options 选项
  * @property {Number} [options.time = 500] 在指定时间（ms）内完成动画，默认500ms
  * @property {String} [options.type = 'easeOutQuad'] 动画类型，默认linear
- * @property {Array} options.targets - 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
+ * @property {Array} options.targets 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
  * @property {Function} options.running - options.targets数值变化过程会执行这个函数
- * @property {Function} options.end - 结束后的回调函数
+ * @property {Function} options.end 结束后的回调函数
  */
 export default function (options) {
   let timer = null
@@ -59,4 +59,9 @@ export default function (options) {
   }
 
   timer = requestAnimationFrame(step)
+  return {
+    stop: function () {
+      cancelAnimationFrame(timer)
+    }
+  }
 }

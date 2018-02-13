@@ -1,81 +1,73 @@
-import animate from '../util/animate'
-
 export function addValidation (Pinch) {
   const proto = Pinch.prototype
 
   proto.validation = function () {
     const pinch = this
-    const options = pinch.options
-    const position = pinch.position
-    const scale = pinch.scale
-    const offsetX = (position.x - pinch.origin.x) * scale
-    const offsetY = (position.y - pinch.origin.y) * scale
-    const { left, right, top, bottom } = options.offset
-    const canvasScale = pinch.canvasScale
-
-    const cropLeft = left * canvasScale
-    const cropTop = top * canvasScale
-
-    const w = options.width - (left + right) * canvasScale - (position.width * scale - (cropLeft - offsetX))
-    const h = options.height - (top + bottom) * canvasScale - (position.height * scale - (cropTop - offsetY))
-
-    let x = 0
-    let y = 0
-    let isDraw = false
-
-    if (offsetX >= cropLeft) {
-      x = -(offsetX - cropLeft) / scale
-      pinch.origin.x -= x
-      isDraw = true
-    } else if (w > 0) {
-      x = w / scale
-      pinch.origin.x -= x
-      isDraw = true
+    const { maxScale, minScale } = pinch.options
+    let scale = pinch.scale
+    let result = { xpos: pinch.position.x, ypos: pinch.position.y, isDraw: false }
+    // 缩放比例判断
+    if (scale > maxScale) {
+      setScale(maxScale)
+    } else if (scale < minScale) {
+      setScale(minScale)
+    } else {
+      result = pinch.checkBorder(pinch.position, scale, pinch.position)
+    }
+    function setScale (newScale) {
+      const scaleChanged = (newScale / pinch.scale)
+      const { x, y } = Pinch.calculate(pinch.position, pinch.firstOrigin, pinch.last.point, scale, scaleChanged)
+      scale = newScale
+      result = pinch.checkBorder({ x, y }, newScale, { x, y })
+      result.isDraw = true
     }
 
-    if (offsetY >= cropTop) {
-      y = -(offsetY - cropTop) / scale
-      pinch.origin.y -= y
+    if (result.isDraw) {
+      pinch.animate(scale, result.xpos, result.ypos)
+    }
+    return result.isDraw
+  }
+
+  /**
+   * 边界值判断
+   * @param {Object} curPos 当前位置
+   * @param {Number} scale 目标比例
+   * @param {Object} position 目标位置
+   */
+  proto.checkBorder = function (curPos, scale, position) {
+    const pinch = this
+    const { width, height, offset } = pinch.options
+    const imageWidth = scale * pinch.image.width
+    const imageHeight = scale * pinch.image.height
+    const w = width - (offset.left + offset.right) - (imageWidth - (offset.left - position.x))
+    const h = height - (offset.top + offset.bottom) - (imageHeight - (offset.top - position.y))
+    let xpos = curPos.x
+    let ypos = curPos.y
+    let isDraw = false
+    if (ypos > offset.top) {
+      // top
+      ypos = offset.top
       isDraw = true
     } else if (h > 0) {
-      y = h / scale
-      pinch.origin.y -= y
+      // bottom
+      ypos = ypos + h
       isDraw = true
     }
 
-    function initLastAnimate () {
-      pinch.lastAnimate = { x: 0, y: 0 }
+    if (xpos > offset.left) {
+      // left
+      xpos = offset.left
+      isDraw = true
+    } else if (w > 0) {
+      // right
+      xpos = xpos + w
+      isDraw = true
     }
 
-    if (isDraw) {
-      initLastAnimate()
-      animate({
-        targets: [[0, x], [0, y]],
-        time: 150,
-        running: pinch._animate.bind(pinch),
-        end () {
-          pinch.isLock = false
-          initLastAnimate()
-        }
-      })
+    return {
+      xpos,
+      ypos,
+      isDraw
     }
-  }
-
-  proto.vaildMaxScale = function (scale) {
-    return (scale || this.scale) < this.options.maxScale
-  }
-
-  proto.vaildMinScale = function (scale) {
-    return (scale || this.scale) > this.options.minScale
-  }
-
-  proto._animate = function (target) {
-    const pinch = this
-    const last = pinch.lastAnimate
-
-    pinch.isLock = true
-    pinch.context.translate(target[0] - last.x, target[1] - last.y)
-    pinch.draw()
-    pinch.lastAnimate = { x: target[0], y: target[1] }
   }
 }

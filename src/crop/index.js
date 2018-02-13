@@ -11,14 +11,12 @@ import Pinch from '../pinch/index'
  */
 function getDefaultOptions () {
   return {
-    // 目标对象，可以是File/Canvas/Image src
-    target: null,
-    // 允许图片的最大width
+    // 允许图片的最大宽度
     maxTargetWidth: 2000,
-    // 允许图片的最大height
+    // 允许图片的最大高度
     maxTargetHeight: 2000,
     // 插入到el节点
-    el: null,
+    el: document.body,
     // 裁剪框width
     width: 300,
     // 裁剪框height
@@ -29,16 +27,14 @@ function getDefaultOptions () {
     y: undefined,
     // 允许缩放的最大比例
     maxScale: 2,
-    // 允许缩放的最小比例
-    minScale: 1,
     // canavs画布比例
     canvasScale: 2,
-    // 绑定事件的节点
+    // 代理触摸事件的节点
     touchTarget: null,
     // 生命周期函数
     created: noop, // 创建完成
-    mounted: noop, // 已插入到html节点
-    loaded: noop,  // 裁剪图片加载完成
+    mounted: noop, // 已插入到页面节点
+    loaded: noop,  // 裁剪的图片加载完成
     // 取消事件回调
     cancle: noop,
     // 确认事件回调
@@ -62,7 +58,6 @@ Crop.prototype = {
   init: function (options) {
     this.options = extend(getDefaultOptions(), options)
     this.create()
-    this.render()
     Crop.count ++
   },
   /**
@@ -71,14 +66,9 @@ Crop.prototype = {
   create: function () {
     const crop = this
     const options = crop.options
-
     let el = options.el
 
-    options.el = el
-      ? typeof el === 'string'
-        ? document.querySelector(el)
-        : el
-      : document.body
+    crop.options.el = el = typeof el === 'string' ? document.querySelector(el) : el
 
     const styles = []
     const width = options.width
@@ -88,8 +78,8 @@ Crop.prototype = {
     // 裁剪最外层div
     const wrapProps = {
       className: 'crop-wrap',
-      width: el ? (el.offsetWidth ? el.offsetWidth : docEl.clientWidth) : docEl.clientWidth,
-      height: el ? (el.offsetHeight ? el.offsetHeight : docEl.clientHeight) : docEl.clientHeight,
+      width: docEl.clientWidth,
+      height: docEl.clientHeight,
       style: function () {
         return `
           .${this.className} {
@@ -121,6 +111,8 @@ Crop.prototype = {
             overflow: hidden;
             border: 1px solid rgba(0, 0, 0, .6);
             border-width: ${wrapProps.height}px ${wrapProps.width}px;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
             box-sizing: content-box;
           }
           .${this.className}:after {
@@ -154,7 +146,8 @@ Crop.prototype = {
             width: 100%;
             height: 50px;
             line-height: 50px;
-            background-color: rgba(0,0,0,.3);
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
           }
           .${this.className} > div {
             height: 100px;
@@ -220,19 +213,19 @@ Crop.prototype = {
     const crop = this
     const options = crop.options
 
-    if (Crop.count === 0) {
+    if (Crop.count <= 1) {
       renderStyle(crop.styles)
     }
     options.el.appendChild(crop.root.el)
 
     initPinch(crop)
 
-    setTimeout(options.mounted.call(crop), 0)
+    setTimeout(() => { options.mounted.call(crop) }, 0)
   },
-  get: function (config = { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85 }) {
+  get: function (config = { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85, format: 'canvas' }) {
     const crop = this
     const pinch = crop.pinch
-    const { width, height, type, quality } = config
+    const { width, height, type, quality, format } = config
     const scale = pinch.options.width / pinch.rect.width
     const clipWidth = crop.area.width * scale
     const clipHeight = crop.area.height * scale
@@ -240,8 +233,8 @@ Crop.prototype = {
 
     function getDefaultCanvas () {
       const canvas = document.createElement('canvas')
-      const x = pinch.options.offset.left * scale
-      const y = pinch.options.offset.top * scale
+      const x = pinch.options.offset.left
+      const y = pinch.options.offset.top
       const ctx = canvas.getContext('2d')
       canvas.width = clipWidth
       canvas.height = clipHeight
@@ -249,35 +242,37 @@ Crop.prototype = {
       return canvas
     }
 
-    let result = {}
-    let value = width || height
-
+    const result = {}
+    const value = width || height
     if (value) {
       const clipScale = width ? width / clipWidth : height / clipHeight
       const newCanvas = value >= 150 ? scaleCanvas(defaultCanvas, clipScale) : antialisScale(defaultCanvas, clipScale)
-      result = {
-        canvas: newCanvas,
-        src: newCanvas.toDataURL(type, quality)
-      }
+      result.canvas = newCanvas
     } else {
-      result = {
-        canvas: defaultCanvas,
-        src: defaultCanvas.toDataURL(type, quality)
-      }
+      result.canvas = defaultCanvas
     }
 
-    result.blob = dataURItoBlob(result.src)
-    result.url = URL.createObjectURL(result.blob)
+    switch (format) {
+      case 'src':
+        result.src = result.canvas.toDataURL(type, quality)
+        break
+      case 'blob':
+        result.blob = dataURItoBlob(result.canvas.toDataURL(type, quality))
+        break
+      case 'url':
+        result.url = URL.createObjectURL(dataURItoBlob(result.canvas.toDataURL(type, quality)))
+    }
 
     return result
   },
   load: function (target) {
     const crop = this
-
-    crop.show()
-    crop.pinch && crop.pinch.remove()
     crop.options.target = target
-    initPinch(crop)
+    if (crop.pinch) {
+      crop.pinch.load(target)
+    } else {
+      this.render()
+    }
   },
   show: function () {
     this.root.el.style.display = 'block'
@@ -287,12 +282,18 @@ Crop.prototype = {
   },
   destroy: function () {
     const crop = this
-
-    crop.pinch.remove()
-    removeElement(crop.root, crop.options.el)
+    if (crop.pinch) {
+      crop.pinch.remove()
+      removeElement(crop.root, crop.options.el)
+    }
   },
-  moveTo: function (x, y) {
-    this.pinch.moveTo(x, y)
+  moveTo: function (x, y, transition = true) {
+    const result = this.pinch.checkBorder({ x, y }, this.pinch.scale, { x, y })
+    if (result.isDraw) {
+      x = result.xpos
+      y = result.ypos
+    }
+    this.pinch.moveTo(x, y, transition)
   },
   scaleTo: function (point, zoom) {
     this.pinch.scaleTo(point, zoom)
@@ -319,10 +320,10 @@ function initPinch (crop) {
       width: width * canvasScale,
       height: height * canvasScale,
       offset: {
-        left: x,
-        right: width - crop.area.width - x,
-        top: y,
-        bottom: height - crop.area.height - y
+        left: x * canvasScale,
+        right: (width - crop.area.width - x) * canvasScale,
+        top: y * canvasScale,
+        bottom: (height - crop.area.height - y) * canvasScale
       }
     }
     crop.pinch = new Pinch(touchTarget, pinchOptions)

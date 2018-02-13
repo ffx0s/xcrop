@@ -9,7 +9,6 @@ export function noop () {}
  */
 export const uuid = () => Math.random().toString(36).substring(3, 8)
 
-
 /**
  * 对象合并
  * @param {Object} target 目标对象

@@ -3,6 +3,10 @@ import { extend } from './shared'
 
 export const isBase64Image = src => src.indexOf(';base64,') > 0
 
+/**
+ * 获取图片方向
+ * @param {Object} binFile ArrayBuffer
+ */
 export function getOrientation (binFile) {
   const view = new DataView(binFile)
 
@@ -132,6 +136,14 @@ function detectVerticalSquash (img, iw, ih) {
   return (ratio === 0) ? 1 : ratio
 }
 
+/**
+ * 改变canvas的方向
+ * @param {Element} canvas 画布
+ * @param {Object} ctx 画布上下文
+ * @param {Number} width 画布宽度
+ * @param {Number} height 画布高度
+ * @param {Number} srcOrientation 方向
+ */
 export function transformCoordinate (canvas, ctx, width, height, srcOrientation) {
   // set proper canvas dimensions before transform & export
   if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
@@ -155,6 +167,13 @@ export function transformCoordinate (canvas, ctx, width, height, srcOrientation)
   }
 }
 
+/**
+ * 图片铺满容器
+ * @param {Number} imgW 图片宽度
+ * @param {Number} imgH 图片高度
+ * @param {Number} divW 容器宽度
+ * @param {Number} divH 容器高度
+ */
 export function imgCover (imgW, imgH, divW, divH) {
   const scale = imgW / imgH
   let width = divW
@@ -177,6 +196,12 @@ export function imgCover (imgW, imgH, divW, divH) {
   }
 }
 
+/**
+ * 将图片转成canvas
+ * @param {(string|file|element)} target 目标
+ * @param {Function} callback 转换成功回调函数
+ * @param {Object} opt 可选项
+ */
 export function imageToCanvas (target, callback, opt) {
   const options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt)
 
