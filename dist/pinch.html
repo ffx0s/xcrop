@@ -17,15 +17,12 @@
     var pinchzoom = new Crop.Pinch(document.getElementById('pinchzoom1'), {
       width: 600,
       height: 600,
-      target: '//7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg',
-      loaded: function () {
-        console.log('加载完毕')
-      }
+      target: '//7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg'
     })
 
-    ;['mousewheel', 'touchstart', 'touchmove', 'touchend', 'pinchstart', 'pinchmove'].forEach(function (value) {
-      pinchzoom.on(value, function (e) {
-        console.log(value)
+    ;['dragstart', 'dragmove', 'dragend', 'pinchstart', 'pinchmove', 'pinchend'].forEach(function (eventName) {
+      pinchzoom.on(eventName, function (e) {
+        console.log(eventName)
       })
     })
   </script>
