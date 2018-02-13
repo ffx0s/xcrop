@@ -152,10 +152,97 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var get$1 = function get$1(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get$1(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var set = function set(object, property, value, receiver) {
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent !== null) {
+      set(parent, property, value, receiver);
+    }
+  } else if ("value" in desc && desc.writable) {
+    desc.value = value;
+  } else {
+    var setter = desc.set;
+
+    if (setter !== undefined) {
+      setter.call(receiver, value);
+    }
+  }
+
+  return value;
+};
+
 var isBase64Image = function isBase64Image(src) {
   return src.indexOf(';base64,') > 0;
 };
 
+/**
+ * 获取图片方向
+ * @param {Object} binFile ArrayBuffer
+ */
 function getOrientation(binFile) {
   var view = new DataView(binFile);
 
@@ -285,6 +372,14 @@ function detectVerticalSquash(img, iw, ih) {
   return ratio === 0 ? 1 : ratio;
 }
 
+/**
+ * 改变canvas的方向
+ * @param {Element} canvas 画布
+ * @param {Object} ctx 画布上下文
+ * @param {Number} width 画布宽度
+ * @param {Number} height 画布高度
+ * @param {Number} srcOrientation 方向
+ */
 function transformCoordinate(canvas, ctx, width, height, srcOrientation) {
   // set proper canvas dimensions before transform & export
   if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
@@ -316,6 +411,13 @@ function transformCoordinate(canvas, ctx, width, height, srcOrientation) {
   }
 }
 
+/**
+ * 图片铺满容器
+ * @param {Number} imgW 图片宽度
+ * @param {Number} imgH 图片高度
+ * @param {Number} divW 容器宽度
+ * @param {Number} divH 容器高度
+ */
 function imgCover(imgW, imgH, divW, divH) {
   var scale = imgW / imgH;
   var width = divW;
@@ -338,6 +440,12 @@ function imgCover(imgW, imgH, divW, divH) {
   };
 }
 
+/**
+ * 将图片转成canvas
+ * @param {(string|file|element)} target 目标
+ * @param {Function} callback 转换成功回调函数
+ * @param {Object} opt 可选项
+ */
 function imageToCanvas(target, callback, opt) {
   var options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt);
 
@@ -432,6 +540,12 @@ function createCanvas(img, orientation, callback, doSquash, options) {
  * 简单封装创建节点和绑定移除事件的操作
  */
 
+/**
+ * 节点对象
+ * @param {String} tagName 节点标签
+ * @param {Object} attr 属性
+ * @param {Array} children 子节点
+ */
 function Element(tagName, attr) {
   var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
@@ -450,11 +564,12 @@ Element.prototype = {
     this.addEvent();
     return this.el;
   }
+}
 
-  /**
-   * 绑定/移除事件方法
-   */
-};['addEvent', 'removeEvent'].forEach(function (value) {
+/**
+ * 绑定/移除事件方法
+ */
+;['addEvent', 'removeEvent'].forEach(function (value) {
   Element.prototype[value] = function () {
     for (var eventName in this.events) {
       this.el[value + 'Listener'](eventName, this.events[eventName], false);
@@ -523,6 +638,41 @@ function renderStyle(cssText) {
   return styleElem;
 }
 
+function initRender(pinch) {
+  pinch.canvas = createCanvas$1(pinch.options.width, pinch.options.height);
+  pinch.context = pinch.canvas.getContext('2d');
+}
+
+function addRender(Pinch) {
+  var proto = Pinch.prototype;
+
+  proto.render = function () {
+    var pinch = this;
+    var options = pinch.options;
+    options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el;
+    options.el.appendChild(pinch.canvas);
+    // 获取canvas位于html里实际的大小
+    pinch.rect = pinch.canvas.getBoundingClientRect();
+    // 利用canvas的宽度和实际的宽度作为它的大小比例
+    pinch.canvasScale = options.width / pinch.rect.width;
+  };
+}
+
+/**
+ * 创建一个宽高为100%的画布
+ * @param {Number} width 画布宽度
+ * @param {Number} height 画布高度
+ */
+function createCanvas$1(width, height) {
+  var canvas = document.createElement('canvas');
+
+  canvas.width = width;
+  canvas.height = height;
+  canvas.style.cssText = 'width:100%;height:100%;';
+
+  return canvas;
+}
+
 var slice = Array.prototype.slice;
 
 function Observer() {
@@ -565,565 +715,232 @@ Observer.prototype = {
   }
 };
 
-function touchEach(touches, callback) {
-  var arr = [];
-  for (var attr in touches) {
-    if (typeof +attr === 'number' && !isNaN(+attr)) {
-      arr.push(callback(touches[attr], attr));
-    }
-  }
-  return arr;
-}
+// t:当前时间、b:初始值、c:变化值、d:总时间，返回结果为当前的位置
 
-function initEvent(pinch) {
-  pinch.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
-  pinch.isMove = false;
-  pinch.isLock = false;
-  pinch.observer = new Observer();
-}
-
-function bindEvent(pinch) {
-  var target = pinch.options.touchTarget || pinch.canvas;
-  pinch.eventList.forEach(function (value) {
-    target.addEventListener(value, pinch, false);
-  });
-}
-
-function addEvent(Pinch) {
-  var proto = Pinch.prototype;
-
-  proto.handleEvent = function (e) {
-    var pinch = this;
-    switch (e.type) {
-      case 'touchstart':
-        pinch.touchstart(e);
-        break;
-      case 'touchmove':
-        pinch.touchmove(e);
-        break;
-      case 'touchend':
-        pinch.touchend(e);
-        break;
-      // debug
-      case 'mousewheel':
-        pinch.mousewheel(e);
-        break;
-    }
-  };
-
-  proto.mousewheel = function (e) {
-    e.preventDefault();
-
-    var pinch = this;
-    var zoomIntensity = 0.01;
-    var mouse = {
-      x: e.clientX - pinch.rect.left,
-      y: e.clientY - pinch.rect.top
-    };
-    var wheel = e.wheelDelta / 520;
-    var zoom = Math.exp(wheel * zoomIntensity);
-
-    pinch.scaleTo(mouse, zoom);
-    pinch.validation();
-    pinch.emit('mousewheel', e);
-  };
-
-  proto.touchstart = function (e) {
-    e.preventDefault();
-
-    var pinch = this;
-    var touches = e.touches;
-
-    if (pinch.isLock) return false;
-
-    if (touches.length === 2) {
-      pinch.pinchstart(e);
-    } else if (touches.length === 1) {
-      pinch.dragstart(e);
-    }
-
-    pinch.isMove = true;
-  };
-
-  proto.touchmove = function (e) {
-    var pinch = this;
-    var touches = e.touches;
-
-    if (!pinch.isMove || pinch.isLock) return false;
-
-    if (touches.length === 2) {
-      pinch.pinchmove(e);
-    } else if (touches.length === 1) {
-      pinch.dragmove(e);
-    }
-  };
-
-  proto.touchend = function (e) {
-    var pinch = this;
-
-    if (pinch.isLock) return false;
-
-    pinch.isMove = false;
-
-    pinch.validation();
-    pinch.emit('touchend', e);
-  };
-
-  proto.dragstart = function (e) {
-    var pinch = this;
-    var touches = e.touches;
-
-    pinch.dragStart = {
-      x: touches[0].pageX - pinch.rect.left,
-      y: touches[0].pageY - pinch.rect.top
-    };
-    pinch.lastMove = {
-      x: pinch.position.x - pinch.origin.x,
-      y: pinch.position.y - pinch.origin.y
-    };
-
-    pinch.emit('touchstart', e);
-  };
-
-  proto.dragmove = function (e) {
-    var pinch = this;
-    var touches = e.touches;
-    var move = {
-      x: touches[0].pageX - pinch.rect.left - pinch.dragStart.x,
-      y: touches[0].pageY - pinch.rect.top - pinch.dragStart.y
-    };
-    var speed = pinch.canvasScale / pinch.scale;
-    var x = pinch.lastMove.x + move.x * speed;
-    var y = pinch.lastMove.y + move.y * speed;
-
-    pinch.moveTo(x, y);
-    pinch.emit('touchmove', e);
-  };
-
-  proto.pinchstart = function (e) {
-    var pinch = this;
-
-    pinch.zoomStart = touchEach(e.touches, function (touch) {
-      return { x: touch.pageX, y: touch.pageY };
-    });
-
-    pinch.zoomCount = 0;
-
-    pinch.emit('pinchstart', e);
-  };
-
-  proto.pinchmove = function (e) {
-    var pinch = this;
-
-    if (!pinch.isMove) return false;
-
-    pinch.zoomCount++;
-
-    pinch.zoomEnd = touchEach(e.touches, function (touch) {
-      return { x: touch.pageX, y: touch.pageY };
-    });
-
-    var touchCenter = Pinch.getTouchCenter(pinch.zoomEnd);
-    var scale = Pinch.getScale(pinch.zoomStart, pinch.zoomEnd);
-
-    if (pinch.zoomCount <= 2) {
-      pinch.lastScale = scale;
-      return false;
-    }
-
-    var zoom = 1 + scale - pinch.lastScale;
-    var move = {
-      x: touchCenter.x - pinch.rect.left,
-      y: touchCenter.y - pinch.rect.top
-    };
-
-    pinch.scaleTo(move, zoom);
-    pinch.lastScale = scale;
-    pinch.emit('pinchmove', e);
-  };
-
-  proto.emit = function (name) {
-    this.observer.emit.apply(this.observer, arguments);
-  };['on', 'off'].forEach(function (value) {
-    proto[value] = function (name, fn) {
-      this.observer[value](name, fn && fn.bind(this));
-    };
-  });
-}
-
-function initRender(pinch) {
-  pinch.scale = 1;
-  pinch.lastScale = 1;
-  pinch.origin = { x: 0, y: 0 };
-}
-
-function render$1(pinch) {
-  var options = pinch.options;
-
-  options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el;
-  pinch.canvas = pinch.createCanvas();
-  pinch.context = pinch.canvas.getContext('2d');
-
-  getCanvasRect(function (rect) {
-    pinch.rect = rect;
-    pinch.canvasScale = options.width / pinch.rect.width;
-    pinch.load(options.target, function () {
-      options.el.appendChild(pinch.canvas);
-    });
-  });
-
-  function getCanvasRect(callback) {
-    var canvas = pinch.createCanvas();
-    options.el.appendChild(canvas);
-    setTimeout(function () {
-      var rect = canvas.getBoundingClientRect();
-      options.el.removeChild(canvas);
-      canvas = null;
-      callback(rect);
-    }, 10);
-  }
-}
-
-function addRender(Pinch) {
-  var proto = Pinch.prototype;
-
-  proto.createCanvas = function () {
-    var pinch = this;
-    var canvas = document.createElement('canvas');
-
-    canvas.width = pinch.options.width;
-    canvas.height = pinch.options.height;
-    canvas.style.cssText = 'width:100%;height:100%;';
-
-    return canvas;
-  };
-
-  proto.load = function (target, callback) {
-    var pinch = this;
-
-    imageToCanvas(target, success, { maxWidth: pinch.options.maxTargetWidth, maxHeight: pinch.options.maxTargetHeight });
-
-    function success(canvas) {
-      var _pinch$options = pinch.options,
-          width = _pinch$options.width,
-          height = _pinch$options.height,
-          offset = _pinch$options.offset,
-          loaded = _pinch$options.loaded;
-
-      var scale = pinch.canvasScale;
-      var pinchWidth = width - (offset.left + offset.right) * scale;
-      var pinchHeight = height - (offset.top + offset.bottom) * scale;
-      pinch.position = imgCover(canvas.width, canvas.height, pinchWidth, pinchHeight);
-      pinch.position.x += offset.left * scale;
-      pinch.position.y += offset.top * scale;
-      pinch.imageCanvas = canvas;
-      pinch.draw();
-      callback && callback();
-      loaded.call(pinch);
-    }
-  };
-
-  proto.remove = function () {
-    var pinch = this;
-    var target = pinch.options.touchTarget || pinch.canvas;
-
-    pinch.eventList.forEach(function (value) {
-      target.removeEventListener(value, pinch, false);
-    });
-
-    pinch.options.el.removeChild(pinch.canvas);
-  };
-
-  proto.draw = function () {
-    var pinch = this;
-    var options = pinch.options;
-    var context = pinch.context;
-    var _pinch$position = pinch.position,
-        x = _pinch$position.x,
-        y = _pinch$position.y,
-        width = _pinch$position.width,
-        height = _pinch$position.height;
-
-
-    context.save();
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    context.clearRect(0, 0, options.width, options.height);
-    context.restore();
-    context.drawImage(pinch.imageCanvas, x, y, width, height);
-  };
-
-  proto.moveTo = function (_x, _y) {
-    var pinch = this;
-    var x = _x - (pinch.position.x - pinch.origin.x);
-    var y = _y - (pinch.position.y - pinch.origin.y);
-
-    pinch.context.translate(x, y);
-    pinch.origin.x -= x;
-    pinch.origin.y -= y;
-    pinch.draw();
-  };
-
-  /**
-   * 图片缩放函数，以point点为中心（以左上角为原点（不是以裁剪框为原点））进行缩放.
-   * @param {object} point - 坐标点.
-   * @property {number} point.x - x坐标.
-   * @property {number} point.y - y坐标.
-   * @param {number} zoom - 缩放比例.
-   */
-
-  proto.scaleTo = function (point, zoom) {
-    var pinch = this;
-    var context = pinch.context;
-    var speed = pinch.canvasScale;
-    var scale = pinch.scale;
-    var origin = pinch.origin;
-
-    if (zoom > 1 && !pinch.vaildMaxScale() || zoom < 1 && !pinch.vaildMinScale()) {
-      return false;
-    }
-
-    if (!pinch.vaildMaxScale(scale * zoom)) {
-      zoom = pinch.options.maxScale / scale;
-    } else if (!pinch.vaildMinScale(scale * zoom)) {
-      zoom = pinch.options.minScale / scale;
-    }
-
-    context.translate(origin.x, origin.y);
-    pinch.origin.x -= point.x * speed / (scale * zoom) - point.x * speed / scale;
-    pinch.origin.y -= point.y * speed / (scale * zoom) - point.y * speed / scale;
-    context.scale(zoom, zoom);
-    context.translate(-pinch.origin.x, -pinch.origin.y);
-    pinch.scale *= zoom;
-
-    pinch.draw();
-  };
-}
-
-/**
- * 缓动函数
- */
 var Easing = {
-  linear: function linear(t, b, c, d) {
-    return c * t / d + b;
-  },
-  easeInQuad: function easeInQuad(t, b, c, d) {
-    return c * (t /= d) * t + b;
-  },
-  easeOutQuad: function easeOutQuad(t, b, c, d) {
-    return -c * (t /= d) * (t - 2) + b;
-  },
-
+  // linear (t, b, c, d) {
+  //   return c * t / d + b
+  // },
+  // easeInQuad (t, b, c, d) {
+  //   return c * (t /= d) * t + b
+  // },
+  // easeOutQuad (t, b, c, d) {
+  //   return -c * (t /= d) * (t - 2) + b
+  // },
   easeOutStrong: function easeOutStrong(t, b, c, d) {
     return -c * ((t = t / d - 1) * t * t * t - 1) + b;
   },
-  easeInOutQuad: function easeInOutQuad(t, b, c, d) {
-    if ((t /= d / 2) < 1) {
-      return c / 2 * t * t + b;
-    } else {
-      return -c / 2 * (--t * (t - 2) - 1) + b;
-    }
-  },
-  easeInCubic: function easeInCubic(t, b, c, d) {
-    return c * (t /= d) * t * t + b;
-  },
+  // easeInOutQuad (t, b, c, d) {
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * t * t + b
+  //   } else {
+  //     return -c / 2 * ((--t) * (t - 2) - 1) + b
+  //   }
+  // },
+  // easeInCubic (t, b, c, d) {
+  //   return c * (t /= d) * t * t + b
+  // },
   easeOutCubic: function easeOutCubic(t, b, c, d) {
     return c * ((t = t / d - 1) * t * t + 1) + b;
-  },
-  easeInOutCubic: function easeInOutCubic(t, b, c, d) {
-    if ((t /= d / 2) < 1) {
-      return c / 2 * t * t * t + b;
-    } else {
-      return c / 2 * ((t -= 2) * t * t + 2) + b;
-    }
-  },
-  easeInQuart: function easeInQuart(t, b, c, d) {
-    return c * (t /= d) * t * t * t + b;
-  },
-  easeOutQuart: function easeOutQuart(t, b, c, d) {
-    return -c * ((t = t / d - 1) * t * t * t - 1) + b;
-  },
-  easeInOutQuart: function easeInOutQuart(t, b, c, d) {
-    if ((t /= d / 2) < 1) {
-      return c / 2 * t * t * t * t + b;
-    } else {
-      return -c / 2 * ((t -= 2) * t * t * t - 2) + b;
-    }
-  },
-  easeInQuint: function easeInQuint(t, b, c, d) {
-    return c * (t /= d) * t * t * t * t + b;
-  },
-  easeOutQuint: function easeOutQuint(t, b, c, d) {
-    return c * ((t = t / d - 1) * t * t * t * t + 1) + b;
-  },
-  easeInOutQuint: function easeInOutQuint(t, b, c, d) {
-    if ((t /= d / 2) < 1) {
-      return c / 2 * t * t * t * t * t + b;
-    } else {
-      return c / 2 * ((t -= 2) * t * t * t * t + 2) + b;
-    }
-  },
-  easeInSine: function easeInSine(t, b, c, d) {
-    return -c * Math.cos(t / d * (Math.PI / 2)) + c + b;
-  },
-  easeOutSine: function easeOutSine(t, b, c, d) {
-    return c * Math.sin(t / d * (Math.PI / 2)) + b;
-  },
-  easeInOutSine: function easeInOutSine(t, b, c, d) {
-    return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b;
-  },
-  easeInExpo: function easeInExpo(t, b, c, d) {
-    var _ref;
-    return (_ref = t === 0) !== null ? _ref : {
-      b: c * Math.pow(2, 10 * (t / d - 1)) + b
-    };
-  },
-  easeOutExpo: function easeOutExpo(t, b, c, d) {
-    var _ref;
-    return (_ref = t === d) !== null ? _ref : b + {
-      c: c * (-Math.pow(2, -10 * t / d) + 1) + b
-    };
-  },
-  easeInOutExpo: function easeInOutExpo(t, b, c, d) {
-    if (t === 0) {}
-    if (t === d) {
-      // b + c
-    }
-    if ((t /= d / 2) < 1) {
-      return c / 2 * Math.pow(2, 10 * (t - 1)) + b;
-    } else {
-      return c / 2 * (-Math.pow(2, -10 * --t) + 2) + b;
-    }
-  },
-  easeInCirc: function easeInCirc(t, b, c, d) {
-    return -c * (Math.sqrt(1 - (t /= d) * t) - 1) + b;
-  },
-  easeOutCirc: function easeOutCirc(t, b, c, d) {
-    return c * Math.sqrt(1 - (t = t / d - 1) * t) + b;
-  },
-  easeInOutCirc: function easeInOutCirc(t, b, c, d) {
-    if ((t /= d / 2) < 1) {
-      return -c / 2 * (Math.sqrt(1 - t * t) - 1) + b;
-    } else {
-      return c / 2 * (Math.sqrt(1 - (t -= 2) * t) + 1) + b;
-    }
-  },
-  easeInElastic: function easeInElastic(t, b, c, d) {
-    var a, p, s;
-    s = 1.70158;
-    p = 0;
-    a = c;
-    if (t === 0) {
-      // b
-    } else if ((t /= d) === 1) {
-      // b + c
-    }
-    if (!p) {
-      p = d * 0.3;
-    }
-    if (a < Math.abs(c)) {
-      a = c;
-      s = p / 4;
-    } else {
-      s = p / (2 * Math.PI) * Math.asin(c / a);
-    }
-    return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
-  },
-  easeOutElastic: function easeOutElastic(t, b, c, d) {
-    var a, p, s;
-    s = 1.70158;
-    p = 0;
-    a = c;
-    if (t === 0) {
-      // b
-    } else if ((t /= d) === 1) {
-      // b + c
-    }
-    if (!p) {
-      p = d * 0.3;
-    }
-    if (a < Math.abs(c)) {
-      a = c;
-      s = p / 4;
-    } else {
-      s = p / (2 * Math.PI) * Math.asin(c / a);
-    }
-    return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
-  },
-  easeInOutElastic: function easeInOutElastic(t, b, c, d) {
-    var a, p, s;
-    s = 1.70158;
-    p = 0;
-    a = c;
-    if (t === 0) {
-      // b
-    } else if ((t /= d / 2) === 2) {
-      // b + c
-    }
-    if (!p) {
-      p = d * (0.3 * 1.5);
-    }
-    if (a < Math.abs(c)) {
-      a = c;
-      s = p / 4;
-    } else {
-      s = p / (2 * Math.PI) * Math.asin(c / a);
-    }
-    if (t < 1) {
-      return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
-    } else {
-      return a * Math.pow(2, -10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p) * 0.5 + c + b;
-    }
-  },
-  easeInBack: function easeInBack(t, b, c, d, s) {
-    if (s === void 0) {
-      s = 1.70158;
-    }
-    return c * (t /= d) * t * ((s + 1) * t - s) + b;
-  },
-  easeOutBack: function easeOutBack(t, b, c, d, s) {
-    if (s === void 0) {
-      s = 1.70158;
-    }
-    return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
-  },
-  easeInOutBack: function easeInOutBack(t, b, c, d, s) {
-    if (s === void 0) {
-      s = 1.70158;
-    }
-    if ((t /= d / 2) < 1) {
-      return c / 2 * (t * t * (((s *= 1.525) + 1) * t - s)) + b;
-    } else {
-      return c / 2 * ((t -= 2) * t * (((s *= 1.525) + 1) * t + s) + 2) + b;
-    }
-  },
-  easeInBounce: function easeInBounce(t, b, c, d) {
-    var v;
-    v = Easing.easeOutBounce(d - t, 0, c, d);
-    return c - v + b;
-  },
-  easeOutBounce: function easeOutBounce(t, b, c, d) {
-    if ((t /= d) < 1 / 2.75) {
-      return c * (7.5625 * t * t) + b;
-    } else if (t < 2 / 2.75) {
-      return c * (7.5625 * (t -= 1.5 / 2.75) * t + 0.75) + b;
-    } else if (t < 2.5 / 2.75) {
-      return c * (7.5625 * (t -= 2.25 / 2.75) * t + 0.9375) + b;
-    } else {
-      return c * (7.5625 * (t -= 2.625 / 2.75) * t + 0.984375) + b;
-    }
-  },
-  easeInOutBounce: function easeInOutBounce(t, b, c, d) {
-    var v;
-    if (t < d / 2) {
-      v = Easing.easeInBounce(t * 2, 0, c, d);
-      return v * 0.5 + b;
-    } else {
-      v = Easing.easeOutBounce(t * 2 - d, 0, c, d);
-      return v * 0.5 + c * 0.5 + b;
-    }
   }
+  // easeInOutCubic (t, b, c, d) {
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * t * t * t + b
+  //   } else {
+  //     return c / 2 * ((t -= 2) * t * t + 2) + b
+  //   }
+  // },
+  // easeInQuart (t, b, c, d) {
+  //   return c * (t /= d) * t * t * t + b
+  // },
+  // easeOutQuart (t, b, c, d) {
+  //   return -c * ((t = t / d - 1) * t * t * t - 1) + b
+  // },
+  // easeInOutQuart (t, b, c, d) {
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * t * t * t * t + b
+  //   } else {
+  //     return -c / 2 * ((t -= 2) * t * t * t - 2) + b
+  //   }
+  // },
+  // easeInQuint (t, b, c, d) {
+  //   return c * (t /= d) * t * t * t * t + b
+  // },
+  // easeOutQuint (t, b, c, d) {
+  //   return c * ((t = t / d - 1) * t * t * t * t + 1) + b
+  // },
+  // easeInOutQuint (t, b, c, d) {
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * t * t * t * t * t + b
+  //   } else {
+  //     return c / 2 * ((t -= 2) * t * t * t * t + 2) + b
+  //   }
+  // },
+  // easeInSine (t, b, c, d) {
+  //   return -c * Math.cos(t / d * (Math.PI / 2)) + c + b
+  // },
+  // easeOutSine (t, b, c, d) {
+  //   return c * Math.sin(t / d * (Math.PI / 2)) + b
+  // },
+  // easeInOutSine (t, b, c, d) {
+  //   return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b
+  // },
+  // easeInExpo (t, b, c, d) {
+  //   var _ref
+  //   return (_ref = t === 0) !== null ? _ref : {
+  //     b: c * Math.pow(2, 10 * (t / d - 1)) + b
+  //   }
+  // },
+  // easeOutExpo (t, b, c, d) {
+  //   var _ref
+  //   return (_ref = t === d) !== null ? _ref : b + {
+  //     c: c * (-Math.pow(2, -10 * t / d) + 1) + b
+  //   }
+  // },
+  // easeInOutExpo (t, b, c, d) {
+  //   if (t === 0) {
+  //   }
+  //   if (t === d) {
+  //     // b + c
+  //   }
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * Math.pow(2, 10 * (t - 1)) + b
+  //   } else {
+  //     return c / 2 * (-Math.pow(2, -10 * --t) + 2) + b
+  //   }
+  // },
+  // easeInCirc (t, b, c, d) {
+  //   return -c * (Math.sqrt(1 - (t /= d) * t) - 1) + b
+  // },
+  // easeOutCirc (t, b, c, d) {
+  //   return c * Math.sqrt(1 - (t = t / d - 1) * t) + b
+  // },
+  // easeInOutCirc (t, b, c, d) {
+  //   if ((t /= d / 2) < 1) {
+  //     return -c / 2 * (Math.sqrt(1 - t * t) - 1) + b
+  //   } else {
+  //     return c / 2 * (Math.sqrt(1 - (t -= 2) * t) + 1) + b
+  //   }
+  // },
+  // easeInElastic (t, b, c, d) {
+  //   var a, p, s
+  //   s = 1.70158
+  //   p = 0
+  //   a = c
+  //   if (t === 0) {
+  //     // b
+  //   } else if ((t /= d) === 1) {
+  //     // b + c
+  //   }
+  //   if (!p) {
+  //     p = d * 0.3
+  //   }
+  //   if (a < Math.abs(c)) {
+  //     a = c
+  //     s = p / 4
+  //   } else {
+  //     s = p / (2 * Math.PI) * Math.asin(c / a)
+  //   }
+  //   return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b
+  // },
+  // easeOutElastic (t, b, c, d) {
+  //   var a, p, s
+  //   s = 1.70158
+  //   p = 0
+  //   a = c
+  //   if (t === 0) {
+  //     // b
+  //   } else if ((t /= d) === 1) {
+  //     // b + c
+  //   }
+  //   if (!p) {
+  //     p = d * 0.3
+  //   }
+  //   if (a < Math.abs(c)) {
+  //     a = c
+  //     s = p / 4
+  //   } else {
+  //     s = p / (2 * Math.PI) * Math.asin(c / a)
+  //   }
+  //   return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b
+  // },
+  // easeInOutElastic (t, b, c, d) {
+  //   var a, p, s
+  //   s = 1.70158
+  //   p = 0
+  //   a = c
+  //   if (t === 0) {
+  //     // b
+  //   } else if ((t /= d / 2) === 2) {
+  //     // b + c
+  //   }
+  //   if (!p) {
+  //     p = d * (0.3 * 1.5)
+  //   }
+  //   if (a < Math.abs(c)) {
+  //     a = c
+  //     s = p / 4
+  //   } else {
+  //     s = p / (2 * Math.PI) * Math.asin(c / a)
+  //   }
+  //   if (t < 1) {
+  //     return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b
+  //   } else {
+  //     return a * Math.pow(2, -10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p) * 0.5 + c + b
+  //   }
+  // },
+  // easeInBack (t, b, c, d, s) {
+  //   if (s === void 0) {
+  //     s = 1.70158
+  //   }
+  //   return c * (t /= d) * t * ((s + 1) * t - s) + b
+  // },
+  // easeOutBack (t, b, c, d, s) {
+  //   if (s === void 0) {
+  //     s = 1.70158
+  //   }
+  //   return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b
+  // },
+  // easeInOutBack (t, b, c, d, s) {
+  //   if (s === void 0) {
+  //     s = 1.70158
+  //   }
+  //   if ((t /= d / 2) < 1) {
+  //     return c / 2 * (t * t * (((s *= 1.525) + 1) * t - s)) + b
+  //   } else {
+  //     return c / 2 * ((t -= 2) * t * (((s *= 1.525) + 1) * t + s) + 2) + b
+  //   }
+  // },
+  // easeInBounce (t, b, c, d) {
+  //   var v
+  //   v = Easing.easeOutBounce(d - t, 0, c, d)
+  //   return c - v + b
+  // },
+  // easeOutBounce (t, b, c, d) {
+  //   if ((t /= d) < 1 / 2.75) {
+  //     return c * (7.5625 * t * t) + b
+  //   } else if (t < 2 / 2.75) {
+  //     return c * (7.5625 * (t -= 1.5 / 2.75) * t + 0.75) + b
+  //   } else if (t < 2.5 / 2.75) {
+  //     return c * (7.5625 * (t -= 2.25 / 2.75) * t + 0.9375) + b
+  //   } else {
+  //     return c * (7.5625 * (t -= 2.625 / 2.75) * t + 0.984375) + b
+  //   }
+  // },
+  // easeInOutBounce (t, b, c, d) {
+  //   var v
+  //   if (t < d / 2) {
+  //     v = Easing.easeInBounce(t * 2, 0, c, d)
+  //     return v * 0.5 + b
+  //   } else {
+  //     v = Easing.easeOutBounce(t * 2 - d, 0, c, d)
+  //     return v * 0.5 + c * 0.5 + b
+  //   }
+  // }
+
 };
 
+// requestAnimationFrame 兼容处理
 var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
   return window.setTimeout(callback, 1000 / 60);
 };
@@ -1146,9 +963,9 @@ var now = function now() {
  * @param {Object} options 选项
  * @property {Number} [options.time = 500] 在指定时间（ms）内完成动画，默认500ms
  * @property {String} [options.type = 'easeOutQuad'] 动画类型，默认linear
- * @property {Array} options.targets - 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
+ * @property {Array} options.targets 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
  * @property {Function} options.running - options.targets数值变化过程会执行这个函数
- * @property {Function} options.end - 结束后的回调函数
+ * @property {Function} options.end 结束后的回调函数
  */
 var animate = function (options) {
   var timer = null;
@@ -1183,90 +1000,464 @@ var animate = function (options) {
   }
 
   timer = requestAnimationFrame(step);
+  return {
+    stop: function stop() {
+      cancelAnimationFrame(timer);
+    }
+  };
 };
+
+function initEvent(pinch) {
+  pinch.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
+  pinch.observer = new Observer();
+  // 最后一次触摸操作的参数
+  pinch.last = {
+    scale: 1,
+    point: { x: 0, y: 0 },
+    move: { x: 0, y: 0 },
+    time: 0,
+    dis: { time: 0, x: 0, y: 0 }
+  };
+  pinch.touchDelay = 3;
+  pinch.animation = { stop: noop };
+}
+
+function addEvent(Pinch) {
+  var proto = Pinch.prototype;
+
+  proto.bindEvent = function () {
+    var pinch = this;
+    var target = pinch.options.touchTarget || pinch.canvas;
+    pinch.eventList.forEach(function (value) {
+      target.addEventListener(value, pinch, false);
+    });
+  };
+
+  proto.handleEvent = function (e) {
+    var pinch = this;
+    switch (e.type) {
+      case 'touchstart':
+        pinch.touchstart(e);
+        break;
+      case 'touchmove':
+        pinch.touchmove(e);
+        break;
+      case 'touchend':
+        pinch.touchend(e);
+        break;
+      // debug
+      case 'mousewheel':
+        pinch.mousewheel(e);
+        break;
+    }
+  };
+
+  // debug
+  proto.mousewheel = function (e) {
+    e.preventDefault();
+    var pinch = this;
+    pinch.rect = pinch.canvas.getBoundingClientRect();
+    var point = {
+      x: (e.clientX - pinch.rect.left) * pinch.canvasScale,
+      y: (e.clientY - pinch.rect.top) * pinch.canvasScale
+    };
+    var STEP = 0.99;
+    var factor = e.deltaY;
+    var scaleChanged = Math.pow(STEP, factor);
+    pinch.last.point = point;
+    pinch.scaleTo(point, pinch.scale * scaleChanged);
+    pinch.emit('mousewheel', e);
+  };
+
+  proto.touchstart = function (e) {
+    e.preventDefault();
+    var pinch = this;
+    var touches = e.touches;
+    pinch.rect = pinch.canvas.getBoundingClientRect();
+    pinch.animation.stop();
+    if (touches.length === 2) {
+      pinch.pinchstart(e);
+    } else if (touches.length === 1) {
+      pinch.dragstart(e);
+    }
+  };
+
+  proto.touchmove = function (e) {
+    var pinch = this;
+    var touches = e.touches;
+    if (touches.length === 2) {
+      pinch.pinchmove(e);
+    } else if (touches.length === 1) {
+      pinch.dragmove(e);
+    }
+  };
+
+  proto.touchend = function (e) {
+    var pinch = this;
+    var touches = e.touches;
+    if (touches.length) {
+      // pinch end
+      pinch.emit('pinchend', e);
+      pinch.dragstart(e);
+    } else {
+      // drag end
+      pinch.dragend(e);
+    }
+  };
+
+  proto.dragstart = function (e) {
+    var pinch = this;
+    var touches = e.touches;
+
+    pinch.last.move = {
+      x: touches[0].clientX - pinch.rect.left,
+      y: touches[0].clientY - pinch.rect.top
+    };
+    pinch.last.dis = { time: 0, x: 0, y: 0 };
+    pinch.last.time = new Date().getTime();
+    pinch.touchDelay = 3;
+    pinch.emit('dragstart', e);
+  };
+
+  proto.dragmove = function (e) {
+    var pinch = this;
+    var touches = e.touches;
+    var move = {
+      x: touches[0].clientX - pinch.rect.left,
+      y: touches[0].clientY - pinch.rect.top
+    };
+    var x = (move.x - pinch.last.move.x) * pinch.canvasScale;
+    var y = (move.y - pinch.last.move.y) * pinch.canvasScale;
+    var nowTime = new Date().getTime();
+    pinch.last.dis = { x: x, y: y, time: nowTime - pinch.last.time };
+    pinch.last.time = nowTime;
+    pinch.last.move = move;
+    // 延迟防止手误操作
+    if (pinch.touchDelay) {
+      pinch.touchDelay--;
+      return;
+    }
+    pinch.moveTo(pinch.position.x + x, pinch.position.y + y);
+    pinch.emit('dragmove', e);
+  };
+
+  proto.dragend = function (e) {
+    var pinch = this;
+    if (!pinch.validation()) {
+      // 缓冲动画
+      var vx = pinch.last.dis.x / pinch.last.dis.time;
+      var vy = pinch.last.dis.y / pinch.last.dis.time;
+      var speed = 0.5;
+      if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
+        var time = 200;
+        var x = pinch.position.x + vx * time;
+        var y = pinch.position.y + vy * time;
+        var result = pinch.checkBorder({ x: x, y: y }, pinch.scale, { x: x, y: y });
+        if (result.isDraw) {
+          x = result.xpos;
+          y = result.ypos;
+        }
+        pinch.animation = animate({
+          time: time * 2,
+          targets: [[pinch.position.x, x], [pinch.position.y, y]],
+          type: 'easeOutStrong',
+          running: function running(target) {
+            pinch.position.x = target[0];
+            pinch.position.y = target[1];
+            pinch.draw();
+          },
+          end: function end() {
+            pinch.validation();
+          }
+        });
+      }
+    }
+    pinch.emit('dragend', e);
+  };
+
+  proto.pinchstart = function (e) {
+    var pinch = this;
+    var zoom = touchEach(e.touches, function (touch) {
+      return { x: touch.clientX, y: touch.clientY };
+    });
+    var touchCenter = Pinch.getTouchCenter(zoom);
+    pinch.last.zoom = zoom;
+    pinch.last.point = {
+      x: (touchCenter.x - pinch.rect.left) * pinch.canvasScale,
+      y: (touchCenter.y - pinch.rect.top) * pinch.canvasScale
+    };
+    pinch.touchDelay = 5;
+    pinch.emit('pinchstart', e);
+  };
+
+  proto.pinchmove = function (e) {
+    var pinch = this;
+    var zoom = touchEach(e.touches, function (touch) {
+      return { x: touch.clientX, y: touch.clientY };
+    });
+    // 双指的中心点
+    var touchCenter = Pinch.getTouchCenter(zoom);
+    // 相对于canvas画布的中心点
+    var point = {
+      x: (touchCenter.x - pinch.rect.left) * pinch.canvasScale,
+      y: (touchCenter.y - pinch.rect.top) * pinch.canvasScale
+    };
+    // 双指两次移动间隔的差值
+    var disX = point.x - pinch.last.point.x;
+    var disY = point.y - pinch.last.point.y;
+    // 双指两次移动间隔的比例
+    var scaleChanged = Pinch.getScale(pinch.last.zoom, zoom);
+    pinch.last.zoom = zoom;
+    pinch.last.point = point;
+    // 延迟防止手误操作
+    if (pinch.touchDelay) {
+      pinch.touchDelay--;
+      return;
+    }
+    pinch.position.x += disX;
+    pinch.position.y += disY;
+    pinch.scaleTo(point, pinch.scale * scaleChanged);
+    pinch.emit('pinchmove', e);
+  };
+
+  proto.emit = function (name) {
+    this.observer.emit.apply(this.observer, arguments);
+  };['on', 'off'].forEach(function (value) {
+    proto[value] = function (name, fn) {
+      this.observer[value](name, fn && fn.bind(this));
+    };
+  });
+}
+
+function touchEach(touches, callback) {
+  var arr = [];
+  for (var attr in touches) {
+    if (typeof +attr === 'number' && !isNaN(+attr)) {
+      arr.push(callback(touches[attr], attr));
+    }
+  }
+  return arr;
+}
+
+function initActions(pinch) {
+  // 缩放比例
+  pinch.scale = 1;
+  // 图片缩放原点坐标
+  pinch.firstOrigin = { x: 0, y: 0 };
+  // 图片相对于canvas的坐标
+  pinch.position = { x: 0, y: 0, width: 0, height: 0 };
+  // 图片数据
+  pinch.image = { width: 0, height: 0, el: null };
+}
+
+function addActions(Pinch) {
+  var proto = Pinch.prototype;
+
+  // 加载目标图片
+  proto.load = function (target, callback) {
+    var pinch = this;
+    var _pinch$options = pinch.options,
+        width = _pinch$options.width,
+        height = _pinch$options.height,
+        offset = _pinch$options.offset,
+        loaded = _pinch$options.loaded,
+        maxTargetWidth = _pinch$options.maxTargetWidth,
+        maxTargetHeight = _pinch$options.maxTargetHeight,
+        maxScale = _pinch$options.maxScale;
+
+
+    imageToCanvas(target, success, { maxWidth: maxTargetWidth, maxHeight: maxTargetHeight });
+
+    function success(canvas) {
+      // image.el为原目标图片的canvas版本，后续画布drawImage会用到
+      var image = { el: canvas, width: canvas.width, height: canvas.height };
+      // 减去偏移量获得实际容器的大小
+      var pinchWidth = width - (offset.left + offset.right);
+      var pinchHeight = height - (offset.top + offset.bottom);
+      // 通过imgCover实现图片铺满容器，返回图片的坐标位置
+      pinch.position = imgCover(image.width, image.height, pinchWidth, pinchHeight);
+      // 需要加上偏移量
+      pinch.position.x += offset.left;
+      pinch.position.y += offset.top;
+      // 图片缩放比例
+      pinch.scale = pinch.position.width / image.width;
+      // 图片尺寸比画布小时，修正最大比例和最小比例
+      var _maxScale = Math.max(pinch.scale, maxScale);
+      var _minScale = pinch.scale;
+      pinch.options.maxScale = _maxScale === _minScale ? pinch.scale * Math.max(maxScale, 1) : maxScale;
+      pinch.options.minScale = _minScale;
+      pinch.image = image;
+      // 图片原点
+      pinch.firstOrigin = {
+        x: pinch.position.x,
+        y: pinch.position.y
+      };
+      pinch.draw();
+      setTimeout(function () {
+        callback && callback();
+        loaded.call(pinch);
+      });
+    }
+  };
+
+  proto.remove = function () {
+    var pinch = this;
+    var target = pinch.options.touchTarget || pinch.canvas;
+
+    pinch.eventList.forEach(function (value) {
+      target.removeEventListener(value, pinch, false);
+    });
+
+    pinch.options.el.removeChild(pinch.canvas);
+  };
+
+  proto.draw = function () {
+    var pinch = this;
+    var options = pinch.options;
+    var context = pinch.context;
+    var _pinch$position = pinch.position,
+        x = _pinch$position.x,
+        y = _pinch$position.y;
+
+
+    context.clearRect(0, 0, options.width, options.height);
+    context.save();
+    pinch.context.translate(x, y);
+    context.scale(pinch.scale, pinch.scale);
+    context.drawImage(pinch.image.el, 0, 0, pinch.image.width, pinch.image.height);
+    context.restore();
+  };
+
+  proto.moveTo = function (xpos, ypos, transition) {
+    var pinch = this;
+    if (transition) {
+      pinch.animate(pinch.scale, xpos, ypos);
+    } else {
+      pinch.position.x = xpos;
+      pinch.position.y = ypos;
+      pinch.draw();
+    }
+  };
+
+  /**
+   * 图片缩放函数，以point点为中心点进行缩放
+   * @param {object} point 坐标点
+   * @property {number} point.x x坐标
+   * @property {number} point.y y坐标
+   * @param {number} zoom 缩放比例
+   */
+
+  proto.scaleTo = function (point, scale) {
+    var pinch = this;
+    if (scale === pinch.scale) return;
+    var scaleChanged = scale / pinch.scale;
+
+    var _Pinch$calculate = Pinch.calculate(pinch.position, pinch.firstOrigin, point, scale / scaleChanged, scaleChanged),
+        x = _Pinch$calculate.x,
+        y = _Pinch$calculate.y;
+
+    pinch.scale = scale;
+    pinch.moveTo(x, y);
+  };
+
+  proto.animate = function (scale, xpos, ypos) {
+    var pinch = this;
+    pinch.animation = animate({
+      targets: [[pinch.scale, scale], [pinch.position.x, xpos], [pinch.position.y, ypos]],
+      time: 450,
+      type: 'easeOutCubic',
+      running: function running(target) {
+        pinch.scale = target[0];
+        pinch.position.x = target[1];
+        pinch.position.y = target[2];
+        pinch.draw();
+      }
+    });
+  };
+}
 
 function addValidation(Pinch) {
   var proto = Pinch.prototype;
 
   proto.validation = function () {
     var pinch = this;
-    var options = pinch.options;
-    var position = pinch.position;
+    var _pinch$options = pinch.options,
+        maxScale = _pinch$options.maxScale,
+        minScale = _pinch$options.minScale;
+
     var scale = pinch.scale;
-    var offsetX = (position.x - pinch.origin.x) * scale;
-    var offsetY = (position.y - pinch.origin.y) * scale;
-    var _options$offset = options.offset,
-        left = _options$offset.left,
-        right = _options$offset.right,
-        top = _options$offset.top,
-        bottom = _options$offset.bottom;
+    var result = { xpos: pinch.position.x, ypos: pinch.position.y, isDraw: false };
+    // 缩放比例判断
+    if (scale > maxScale) {
+      setScale(maxScale);
+    } else if (scale < minScale) {
+      setScale(minScale);
+    } else {
+      result = pinch.checkBorder(pinch.position, scale, pinch.position);
+    }
+    function setScale(newScale) {
+      var scaleChanged = newScale / pinch.scale;
 
-    var canvasScale = pinch.canvasScale;
+      var _Pinch$calculate = Pinch.calculate(pinch.position, pinch.firstOrigin, pinch.last.point, scale, scaleChanged),
+          x = _Pinch$calculate.x,
+          y = _Pinch$calculate.y;
 
-    var cropLeft = left * canvasScale;
-    var cropTop = top * canvasScale;
-
-    var w = options.width - (left + right) * canvasScale - (position.width * scale - (cropLeft - offsetX));
-    var h = options.height - (top + bottom) * canvasScale - (position.height * scale - (cropTop - offsetY));
-
-    var x = 0;
-    var y = 0;
-    var isDraw = false;
-
-    if (offsetX >= cropLeft) {
-      x = -(offsetX - cropLeft) / scale;
-      pinch.origin.x -= x;
-      isDraw = true;
-    } else if (w > 0) {
-      x = w / scale;
-      pinch.origin.x -= x;
-      isDraw = true;
+      scale = newScale;
+      result = pinch.checkBorder({ x: x, y: y }, newScale, { x: x, y: y });
+      result.isDraw = true;
     }
 
-    if (offsetY >= cropTop) {
-      y = -(offsetY - cropTop) / scale;
-      pinch.origin.y -= y;
+    if (result.isDraw) {
+      pinch.animate(scale, result.xpos, result.ypos);
+    }
+    return result.isDraw;
+  };
+
+  /**
+   * 边界值判断
+   * @param {Object} curPos 当前位置
+   * @param {Number} scale 目标比例
+   * @param {Object} position 目标位置
+   */
+  proto.checkBorder = function (curPos, scale, position) {
+    var pinch = this;
+    var _pinch$options2 = pinch.options,
+        width = _pinch$options2.width,
+        height = _pinch$options2.height,
+        offset = _pinch$options2.offset;
+
+    var imageWidth = scale * pinch.image.width;
+    var imageHeight = scale * pinch.image.height;
+    var w = width - (offset.left + offset.right) - (imageWidth - (offset.left - position.x));
+    var h = height - (offset.top + offset.bottom) - (imageHeight - (offset.top - position.y));
+    var xpos = curPos.x;
+    var ypos = curPos.y;
+    var isDraw = false;
+    if (ypos > offset.top) {
+      // top
+      ypos = offset.top;
       isDraw = true;
     } else if (h > 0) {
-      y = h / scale;
-      pinch.origin.y -= y;
+      // bottom
+      ypos = ypos + h;
       isDraw = true;
     }
 
-    function initLastAnimate() {
-      pinch.lastAnimate = { x: 0, y: 0 };
+    if (xpos > offset.left) {
+      // left
+      xpos = offset.left;
+      isDraw = true;
+    } else if (w > 0) {
+      // right
+      xpos = xpos + w;
+      isDraw = true;
     }
 
-    if (isDraw) {
-      initLastAnimate();
-      animate({
-        targets: [[0, x], [0, y]],
-        time: 150,
-        running: pinch._animate.bind(pinch),
-        end: function end() {
-          pinch.isLock = false;
-          initLastAnimate();
-        }
-      });
-    }
-  };
-
-  proto.vaildMaxScale = function (scale) {
-    return (scale || this.scale) < this.options.maxScale;
-  };
-
-  proto.vaildMinScale = function (scale) {
-    return (scale || this.scale) > this.options.minScale;
-  };
-
-  proto._animate = function (target) {
-    var pinch = this;
-    var last = pinch.lastAnimate;
-
-    pinch.isLock = true;
-    pinch.context.translate(target[0] - last.x, target[1] - last.y);
-    pinch.draw();
-    pinch.lastAnimate = { x: target[0], y: target[1] };
+    return {
+      xpos: xpos,
+      ypos: ypos,
+      isDraw: isDraw
+    };
   };
 }
 
@@ -1274,6 +1465,10 @@ function sum(a, b) {
   return a + b;
 }
 
+/**
+ * 获取两个点的中心
+ * @param {Array} vectors 点
+ */
 function getTouchCenter(vectors) {
   return {
     x: vectors.map(function (v) {
@@ -1285,6 +1480,7 @@ function getTouchCenter(vectors) {
   };
 }
 
+// 获取点距离
 function getDistance(p1, p2, props) {
   props = props || ['x', 'y'];
 
@@ -1293,14 +1489,45 @@ function getDistance(p1, p2, props) {
   return Math.sqrt(x * x + y * y);
 }
 
+/**
+ * 通过两点距离计算比例
+ * @param {Array} start 起始点
+ * @param {Array} end 结束点
+ */
 function getScale(start, end) {
   return getDistance(end[0], end[1]) / getDistance(start[0], start[1]);
+}
+
+/**
+ * 以点坐标为原点计进行缩放，计算缩放后位置的函数，返回缩放后的x,y,scale值
+ * https://stackoverflow.com/questions/48097552/how-to-zoom-on-a-point-with-javascript
+ * @param {Object} currentOrigin 当前原点坐标
+ * @param {Object} firstOrigin 第一次缩放时的原点坐标
+ * @param {Object} point 缩放点
+ * @param {Number} scale 当前比例
+ * @param {Number} scaleChanged 每次缩放的比例系数
+ */
+function calculate(currentOrigin, firstOrigin, point, scale, scaleChanged) {
+  // 鼠标坐标与当前原点的距离
+  var distanceX = point.x - currentOrigin.x;
+  var distanceY = point.y - currentOrigin.y;
+  // 新原点坐标
+  var newOriginX = currentOrigin.x + distanceX * (1 - scaleChanged);
+  var newOriginY = currentOrigin.y + distanceY * (1 - scaleChanged);
+  var offsetX = newOriginX - firstOrigin.x;
+  var offsetY = newOriginY - firstOrigin.y;
+  return {
+    scale: scale * scaleChanged,
+    x: firstOrigin.x + offsetX,
+    y: firstOrigin.y + offsetY
+  };
 }
 
 var addGlobal = function (Pinch) {
   Pinch.getTouchCenter = getTouchCenter;
   Pinch.getDistance = getDistance;
   Pinch.getScale = getScale;
+  Pinch.calculate = calculate;
   Pinch.Observer = Observer;
 };
 
@@ -1310,11 +1537,14 @@ function getDefaultOptions$1() {
     maxTargetWidth: 2000,
     maxTargetHeight: 2000,
     el: null,
+    // canvas宽度
     width: 800,
+    // canvas高度
     height: 800,
+    // 最大缩放比例，最小缩放比例默认为 canvas 与图片大小计算的比例
     maxScale: 2,
-    minScale: 1,
     touchTarget: null,
+    // canvas位于容器的偏移量
     offset: {
       left: 0,
       right: 0,
@@ -1328,6 +1558,9 @@ function getDefaultOptions$1() {
 function Pinch(el, options) {
   options.el = el;
   this.init(options);
+  this.render();
+  this.bindEvent();
+  this.load(options.target);
 }
 
 Pinch.prototype.init = function (options) {
@@ -1335,19 +1568,20 @@ Pinch.prototype.init = function (options) {
 
   pinch.options = extend(getDefaultOptions$1(), options);
 
-  function initState(pinch) {
-    initEvent(pinch);
-    initRender(pinch);
-  }
-
-  initState(pinch);
-  render$1(pinch);
-  bindEvent(pinch);
+  initRender(pinch);
+  initEvent(pinch);
+  initActions(pinch);
 };
 
+// 添加静态方法
 addGlobal(Pinch);
-addEvent(Pinch);
+// 添加渲染相关的原型方法
 addRender(Pinch);
+// 添加事件相关的原型方法
+addEvent(Pinch);
+// 添加操作相关的原型方法
+addActions(Pinch);
+// 添加验证相关的原型方法
 addValidation(Pinch);
 
 /**
@@ -1355,14 +1589,12 @@ addValidation(Pinch);
  */
 function getDefaultOptions() {
   return {
-    // 目标对象，可以是File/Canvas/Image src
-    target: null,
-    // 允许图片的最大width
+    // 允许图片的最大宽度
     maxTargetWidth: 2000,
-    // 允许图片的最大height
+    // 允许图片的最大高度
     maxTargetHeight: 2000,
     // 插入到el节点
-    el: null,
+    el: document.body,
     // 裁剪框width
     width: 300,
     // 裁剪框height
@@ -1373,16 +1605,14 @@ function getDefaultOptions() {
     y: undefined,
     // 允许缩放的最大比例
     maxScale: 2,
-    // 允许缩放的最小比例
-    minScale: 1,
     // canavs画布比例
     canvasScale: 2,
-    // 绑定事件的节点
+    // 代理触摸事件的节点
     touchTarget: null,
     // 生命周期函数
     created: noop, // 创建完成
-    mounted: noop, // 已插入到html节点
-    loaded: noop, // 裁剪图片加载完成
+    mounted: noop, // 已插入到页面节点
+    loaded: noop, // 裁剪的图片加载完成
     // 取消事件回调
     cancle: noop,
     // 确认事件回调
@@ -1406,7 +1636,6 @@ Crop.prototype = {
   init: function init(options) {
     this.options = extend(getDefaultOptions(), options);
     this.create();
-    this.render();
     Crop.count++;
   },
   /**
@@ -1415,10 +1644,9 @@ Crop.prototype = {
   create: function create() {
     var crop = this;
     var options = crop.options;
-
     var el = options.el;
 
-    options.el = el ? typeof el === 'string' ? document.querySelector(el) : el : document.body;
+    crop.options.el = el = typeof el === 'string' ? document.querySelector(el) : el;
 
     var styles = [];
     var width = options.width;
@@ -1428,27 +1656,30 @@ Crop.prototype = {
     // 裁剪最外层div
     var wrapProps = {
       className: 'crop-wrap',
-      width: el ? el.offsetWidth ? el.offsetWidth : docEl.clientWidth : docEl.clientWidth,
-      height: el ? el.offsetHeight ? el.offsetHeight : docEl.clientHeight : docEl.clientHeight,
+      width: docEl.clientWidth,
+      height: docEl.clientHeight,
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n            z-index: 99;\n          }\n        ';
       }
-      // 遮罩层
-    };var maskProps = {
+    };
+    // 遮罩层
+    var maskProps = {
       className: 'crop-mask',
       left: typeof options.x === 'number' ? options.x - wrapProps.width : -(width + wrapProps.width) / 2,
       top: typeof options.y === 'number' ? options.y - wrapProps.height : -(height + wrapProps.height) / 2,
       style: function style() {
-        return '\n          .' + this.className + ' {\n            position: absolute; \n            left: ' + this.left + 'px;\n            top: ' + this.top + 'px;\n            width: ' + width + 'px; \n            height: ' + height + 'px; \n            overflow: hidden;\n            border: 1px solid rgba(0, 0, 0, .6);\n            border-width: ' + wrapProps.height + 'px ' + wrapProps.width + 'px;\n            box-sizing: content-box;\n          }\n          .' + this.className + ':after {\n            position: absolute;\n            left: 0;\n            top: 0;\n            float: left;\n            content: \'\';\n            width: 200%;\n            height: 200%;\n            border: 1px solid #fff;\n            -webkit-box-sizing: border-box;\n            box-sizing: border-box;\n            -webkit-transform: scale(0.5);\n            transform: scale(0.5);\n            -webkit-transform-origin: 0 0;\n            transform-origin: 0 0;\n          }\n        ';
+        return '\n          .' + this.className + ' {\n            position: absolute; \n            left: ' + this.left + 'px;\n            top: ' + this.top + 'px;\n            width: ' + width + 'px; \n            height: ' + height + 'px; \n            overflow: hidden;\n            border: 1px solid rgba(0, 0, 0, .6);\n            border-width: ' + wrapProps.height + 'px ' + wrapProps.width + 'px;\n            transform: translateZ(0);\n            -webkit-transform: translateZ(0);\n            box-sizing: content-box;\n          }\n          .' + this.className + ':after {\n            position: absolute;\n            left: 0;\n            top: 0;\n            float: left;\n            content: \'\';\n            width: 200%;\n            height: 200%;\n            border: 1px solid #fff;\n            -webkit-box-sizing: border-box;\n            box-sizing: border-box;\n            -webkit-transform: scale(0.5);\n            transform: scale(0.5);\n            -webkit-transform-origin: 0 0;\n            transform-origin: 0 0;\n          }\n        ';
       }
-      // 底部按钮外层div
-    };var handleProps = {
+    };
+    // 底部按钮外层div
+    var handleProps = {
       className: 'crop-handle',
       style: function style() {
-        return '\n          .' + this.className + ' {\n            position: absolute;\n            bottom: 0;\n            left: 0;\n            width: 100%;\n            height: 50px;\n            line-height: 50px;\n            background-color: rgba(0,0,0,.3);\n          }\n          .' + this.className + ' > div {\n            height: 100px;\n            width: 80px;\n            color: #fff;\n            font-size: 16px;\n            text-align: center;\n          }\n        ';
+        return '\n          .' + this.className + ' {\n            position: absolute;\n            bottom: 0;\n            left: 0;\n            width: 100%;\n            height: 50px;\n            line-height: 50px;\n            transform: translateZ(0);\n            -webkit-transform: translateZ(0);\n          }\n          .' + this.className + ' > div {\n            height: 100px;\n            width: 80px;\n            color: #fff;\n            font-size: 16px;\n            text-align: center;\n          }\n        ';
       }
-      // 取消按钮
-    };var cancleProps = {
+    };
+    // 取消按钮
+    var cancleProps = {
       className: 'crop-cancle',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: left;\n          }\n        ';
@@ -1456,8 +1687,9 @@ Crop.prototype = {
       events: {
         touchstart: options.cancle.bind(crop)
       }
-      // 确认按钮
-    };var confirmProps = {
+    };
+    // 确认按钮
+    var confirmProps = {
       className: 'crop-confirm',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: right;\n          }\n        ';
@@ -1465,9 +1697,10 @@ Crop.prototype = {
       events: {
         touchstart: options.confirm.bind(crop)
       }
+    };
 
-      // 实例化节点对象
-    };crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
+    // 实例化节点对象
+    crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
 
     // 创建dom节点
     createElement(crop.root, function (element) {
@@ -1485,24 +1718,27 @@ Crop.prototype = {
     var crop = this;
     var options = crop.options;
 
-    if (Crop.count === 0) {
+    if (Crop.count <= 1) {
       renderStyle(crop.styles);
     }
     options.el.appendChild(crop.root.el);
 
     initPinch(crop);
 
-    setTimeout(options.mounted.call(crop), 0);
+    setTimeout(function () {
+      options.mounted.call(crop);
+    }, 0);
   },
   get: function get() {
-    var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85 };
+    var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85, format: 'canvas' };
 
     var crop = this;
     var pinch = crop.pinch;
     var width = config.width,
         height = config.height,
         type = config.type,
-        quality = config.quality;
+        quality = config.quality,
+        format = config.format;
 
     var scale = pinch.options.width / pinch.rect.width;
     var clipWidth = crop.area.width * scale;
@@ -1511,8 +1747,8 @@ Crop.prototype = {
 
     function getDefaultCanvas() {
       var canvas = document.createElement('canvas');
-      var x = pinch.options.offset.left * scale;
-      var y = pinch.options.offset.top * scale;
+      var x = pinch.options.offset.left;
+      var y = pinch.options.offset.top;
       var ctx = canvas.getContext('2d');
       canvas.width = clipWidth;
       canvas.height = clipHeight;
@@ -1522,33 +1758,35 @@ Crop.prototype = {
 
     var result = {};
     var value = width || height;
-
     if (value) {
       var clipScale = width ? width / clipWidth : height / clipHeight;
       var newCanvas = value >= 150 ? scaleCanvas(defaultCanvas, clipScale) : antialisScale(defaultCanvas, clipScale);
-      result = {
-        canvas: newCanvas,
-        src: newCanvas.toDataURL(type, quality)
-      };
+      result.canvas = newCanvas;
     } else {
-      result = {
-        canvas: defaultCanvas,
-        src: defaultCanvas.toDataURL(type, quality)
-      };
+      result.canvas = defaultCanvas;
     }
 
-    result.blob = dataURItoBlob(result.src);
-    result.url = URL.createObjectURL(result.blob);
+    switch (format) {
+      case 'src':
+        result.src = result.canvas.toDataURL(type, quality);
+        break;
+      case 'blob':
+        result.blob = dataURItoBlob(result.canvas.toDataURL(type, quality));
+        break;
+      case 'url':
+        result.url = URL.createObjectURL(dataURItoBlob(result.canvas.toDataURL(type, quality)));
+    }
 
     return result;
   },
   load: function load(target) {
     var crop = this;
-
-    crop.show();
-    crop.pinch && crop.pinch.remove();
     crop.options.target = target;
-    initPinch(crop);
+    if (crop.pinch) {
+      crop.pinch.load(target);
+    } else {
+      this.render();
+    }
   },
   show: function show() {
     this.root.el.style.display = 'block';
@@ -1558,12 +1796,20 @@ Crop.prototype = {
   },
   destroy: function destroy() {
     var crop = this;
-
-    crop.pinch.remove();
-    removeElement(crop.root, crop.options.el);
+    if (crop.pinch) {
+      crop.pinch.remove();
+      removeElement(crop.root, crop.options.el);
+    }
   },
   moveTo: function moveTo(x, y) {
-    this.pinch.moveTo(x, y);
+    var transition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+    var result = this.pinch.checkBorder({ x: x, y: y }, this.pinch.scale, { x: x, y: y });
+    if (result.isDraw) {
+      x = result.xpos;
+      y = result.ypos;
+    }
+    this.pinch.moveTo(x, y, transition);
   },
   scaleTo: function scaleTo(point, zoom) {
     this.pinch.scaleTo(point, zoom);
@@ -1604,10 +1850,10 @@ function initPinch(crop) {
       width: width * canvasScale,
       height: height * canvasScale,
       offset: {
-        left: x,
-        right: width - crop.area.width - x,
-        top: y,
-        bottom: height - crop.area.height - y
+        left: x * canvasScale,
+        right: (width - crop.area.width - x) * canvasScale,
+        top: y * canvasScale,
+        bottom: (height - crop.area.height - y) * canvasScale
       }
     };
     crop.pinch = new Pinch(touchTarget, pinchOptions);
