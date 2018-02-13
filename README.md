@@ -1,7 +1,7 @@
 # 移动端裁剪
 
 ### 使用原生javascript，基于canvas实现的移动端裁剪插件，压缩后大小为22KB，无任何依赖。  
-效果：[gif] (https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)
+效果：[gif](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)
 
 <img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg?imageView2/2/w/350" width="350" />
 
