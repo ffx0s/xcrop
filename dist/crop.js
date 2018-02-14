@@ -152,89 +152,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var get$1 = function get$1(object, property, receiver) {
-  if (object === null) object = Function.prototype;
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent === null) {
-      return undefined;
-    } else {
-      return get$1(parent, property, receiver);
-    }
-  } else if ("value" in desc) {
-    return desc.value;
-  } else {
-    var getter = desc.get;
-
-    if (getter === undefined) {
-      return undefined;
-    }
-
-    return getter.call(receiver);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var set = function set(object, property, value, receiver) {
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent !== null) {
-      set(parent, property, value, receiver);
-    }
-  } else if ("value" in desc && desc.writable) {
-    desc.value = value;
-  } else {
-    var setter = desc.set;
-
-    if (setter !== undefined) {
-      setter.call(receiver, value);
-    }
-  }
-
-  return value;
-};
-
 var isBase64Image = function isBase64Image(src) {
   return src.indexOf(';base64,') > 0;
 };
@@ -540,12 +457,6 @@ function createCanvas(img, orientation, callback, doSquash, options) {
  * 简单封装创建节点和绑定移除事件的操作
  */
 
-/**
- * 节点对象
- * @param {String} tagName 节点标签
- * @param {Object} attr 属性
- * @param {Array} children 子节点
- */
 function Element(tagName, attr) {
   var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
@@ -564,12 +475,11 @@ Element.prototype = {
     this.addEvent();
     return this.el;
   }
-}
 
-/**
- * 绑定/移除事件方法
- */
-;['addEvent', 'removeEvent'].forEach(function (value) {
+  /**
+   * 绑定/移除事件方法
+   */
+};['addEvent', 'removeEvent'].forEach(function (value) {
   Element.prototype[value] = function () {
     for (var eventName in this.events) {
       this.el[value + 'Listener'](eventName, this.events[eventName], false);
@@ -940,7 +850,6 @@ var Easing = {
 
 };
 
-// requestAnimationFrame 兼容处理
 var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
   return window.setTimeout(callback, 1000 / 60);
 };
@@ -1201,9 +1110,8 @@ function addEvent(Pinch) {
     var point = {
       x: (touchCenter.x - pinch.rect.left) * pinch.canvasScale,
       y: (touchCenter.y - pinch.rect.top) * pinch.canvasScale
-    };
-    // 双指两次移动间隔的差值
-    var disX = point.x - pinch.last.point.x;
+      // 双指两次移动间隔的差值
+    };var disX = point.x - pinch.last.point.x;
     var disY = point.y - pinch.last.point.y;
     // 双指两次移动间隔的比例
     var scaleChanged = Pinch.getScale(pinch.last.zoom, zoom);
@@ -1243,11 +1151,11 @@ function initActions(pinch) {
   // 缩放比例
   pinch.scale = 1;
   // 图片缩放原点坐标
-  pinch.firstOrigin = { x: 0, y: 0 };
-  // 图片相对于canvas的坐标
-  pinch.position = { x: 0, y: 0, width: 0, height: 0 };
-  // 图片数据
-  pinch.image = { width: 0, height: 0, el: null };
+  pinch.firstOrigin = { x: 0, y: 0
+    // 图片相对于canvas的坐标
+  };pinch.position = { x: 0, y: 0, width: 0, height: 0
+    // 图片数据
+  };pinch.image = { width: 0, height: 0, el: null };
 }
 
 function addActions(Pinch) {
@@ -1270,9 +1178,9 @@ function addActions(Pinch) {
 
     function success(canvas) {
       // image.el为原目标图片的canvas版本，后续画布drawImage会用到
-      var image = { el: canvas, width: canvas.width, height: canvas.height };
-      // 减去偏移量获得实际容器的大小
-      var pinchWidth = width - (offset.left + offset.right);
+      var image = { el: canvas, width: canvas.width, height: canvas.height
+        // 减去偏移量获得实际容器的大小
+      };var pinchWidth = width - (offset.left + offset.right);
       var pinchHeight = height - (offset.top + offset.bottom);
       // 通过imgCover实现图片铺满容器，返回图片的坐标位置
       pinch.position = imgCover(image.width, image.height, pinchWidth, pinchHeight);
@@ -1386,9 +1294,9 @@ function addValidation(Pinch) {
         minScale = _pinch$options.minScale;
 
     var scale = pinch.scale;
-    var result = { xpos: pinch.position.x, ypos: pinch.position.y, isDraw: false };
-    // 缩放比例判断
-    if (scale > maxScale) {
+    var result = { xpos: pinch.position.x, ypos: pinch.position.y, isDraw: false
+      // 缩放比例判断
+    };if (scale > maxScale) {
       setScale(maxScale);
     } else if (scale < minScale) {
       setScale(minScale);
@@ -1584,9 +1492,6 @@ addActions(Pinch);
 // 添加验证相关的原型方法
 addValidation(Pinch);
 
-/**
- * 获取裁剪默认选项
- */
 function getDefaultOptions() {
   return {
     // 允许图片的最大宽度
@@ -1636,7 +1541,6 @@ Crop.prototype = {
   init: function init(options) {
     this.options = extend(getDefaultOptions(), options);
     this.create();
-    Crop.count++;
   },
   /**
    * 创建dom节点
@@ -1661,25 +1565,22 @@ Crop.prototype = {
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: fixed;\n            left: 0;\n            top: 0;\n            overflow: hidden;\n            width: ' + this.width + 'px;\n            height: ' + this.height + 'px;\n            background: #000;\n            z-index: 99;\n          }\n        ';
       }
-    };
-    // 遮罩层
-    var maskProps = {
+      // 遮罩层
+    };var maskProps = {
       className: 'crop-mask',
       left: typeof options.x === 'number' ? options.x - wrapProps.width : -(width + wrapProps.width) / 2,
       top: typeof options.y === 'number' ? options.y - wrapProps.height : -(height + wrapProps.height) / 2,
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: absolute; \n            left: ' + this.left + 'px;\n            top: ' + this.top + 'px;\n            width: ' + width + 'px; \n            height: ' + height + 'px; \n            overflow: hidden;\n            border: 1px solid rgba(0, 0, 0, .6);\n            border-width: ' + wrapProps.height + 'px ' + wrapProps.width + 'px;\n            transform: translateZ(0);\n            -webkit-transform: translateZ(0);\n            box-sizing: content-box;\n          }\n          .' + this.className + ':after {\n            position: absolute;\n            left: 0;\n            top: 0;\n            float: left;\n            content: \'\';\n            width: 200%;\n            height: 200%;\n            border: 1px solid #fff;\n            -webkit-box-sizing: border-box;\n            box-sizing: border-box;\n            -webkit-transform: scale(0.5);\n            transform: scale(0.5);\n            -webkit-transform-origin: 0 0;\n            transform-origin: 0 0;\n          }\n        ';
       }
-    };
-    // 底部按钮外层div
-    var handleProps = {
+      // 底部按钮外层div
+    };var handleProps = {
       className: 'crop-handle',
       style: function style() {
         return '\n          .' + this.className + ' {\n            position: absolute;\n            bottom: 0;\n            left: 0;\n            width: 100%;\n            height: 50px;\n            line-height: 50px;\n            transform: translateZ(0);\n            -webkit-transform: translateZ(0);\n          }\n          .' + this.className + ' > div {\n            height: 100px;\n            width: 80px;\n            color: #fff;\n            font-size: 16px;\n            text-align: center;\n          }\n        ';
       }
-    };
-    // 取消按钮
-    var cancleProps = {
+      // 取消按钮
+    };var cancleProps = {
       className: 'crop-cancle',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: left;\n          }\n        ';
@@ -1687,9 +1588,8 @@ Crop.prototype = {
       events: {
         touchstart: options.cancle.bind(crop)
       }
-    };
-    // 确认按钮
-    var confirmProps = {
+      // 确认按钮
+    };var confirmProps = {
       className: 'crop-confirm',
       style: function style() {
         return '\n          .' + this.className + ' {\n            float: right;\n          }\n        ';
@@ -1697,10 +1597,9 @@ Crop.prototype = {
       events: {
         touchstart: options.confirm.bind(crop)
       }
-    };
 
-    // 实例化节点对象
-    crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
+      // 实例化节点对象
+    };crop.root = new Element('div', wrapProps, [new Element('div', maskProps), new Element('div', handleProps, [new Element('div', cancleProps, ['取消']), new Element('div', confirmProps, ['确认'])])]);
 
     // 创建dom节点
     createElement(crop.root, function (element) {
@@ -1717,14 +1616,12 @@ Crop.prototype = {
   render: function render() {
     var crop = this;
     var options = crop.options;
-
-    if (Crop.count <= 1) {
+    if (!Crop.isRenderStyle) {
       renderStyle(crop.styles);
+      Crop.isRenderStyle = true;
     }
     options.el.appendChild(crop.root.el);
-
     initPinch(crop);
-
     setTimeout(function () {
       options.mounted.call(crop);
     }, 0);
@@ -1789,10 +1686,20 @@ Crop.prototype = {
     }
   },
   show: function show() {
-    this.root.el.style.display = 'block';
+    var _this = this;
+
+    // 加定时器保证在其他任务完成之后执行
+    setTimeout(function () {
+      _this.root.el.style.display = 'block';
+    });
   },
   hide: function hide() {
-    this.root.el.style.display = 'none';
+    var _this2 = this;
+
+    // 加定时器保证在其他任务完成之后执行
+    setTimeout(function () {
+      _this2.root.el.style.display = 'none';
+    });
   },
   destroy: function destroy() {
     var crop = this;
@@ -1816,49 +1723,46 @@ Crop.prototype = {
   }
 };
 
-Crop.count = 0;
+Crop.isRenderStyle = false;
 Crop.loadImage = imageToCanvas;
 Crop.Pinch = Pinch;
 
 function initPinch(crop) {
-  function init() {
-    var _crop$options = crop.options,
-        target = _crop$options.target,
-        maxTargetWidth = _crop$options.maxTargetWidth,
-        maxTargetHeight = _crop$options.maxTargetHeight,
-        canvasScale = _crop$options.canvasScale,
-        x = _crop$options.x,
-        y = _crop$options.y,
-        el = _crop$options.el,
-        maxScale = _crop$options.maxScale,
-        minScale = _crop$options.minScale,
-        loaded = _crop$options.loaded;
-    var _crop$root = crop.root,
-        touchTarget = _crop$root.el,
-        width = _crop$root.width,
-        height = _crop$root.height;
+  var _crop$options = crop.options,
+      target = _crop$options.target,
+      maxTargetWidth = _crop$options.maxTargetWidth,
+      maxTargetHeight = _crop$options.maxTargetHeight,
+      canvasScale = _crop$options.canvasScale,
+      x = _crop$options.x,
+      y = _crop$options.y,
+      el = _crop$options.el,
+      maxScale = _crop$options.maxScale,
+      minScale = _crop$options.minScale,
+      loaded = _crop$options.loaded;
+  var _crop$root = crop.root,
+      touchTarget = _crop$root.el,
+      width = _crop$root.width,
+      height = _crop$root.height;
 
-    var pinchOptions = {
-      target: target,
-      maxTargetWidth: maxTargetWidth,
-      maxTargetHeight: maxTargetHeight,
-      el: el,
-      maxScale: maxScale,
-      minScale: minScale,
-      loaded: loaded,
-      touchTarget: touchTarget,
-      width: width * canvasScale,
-      height: height * canvasScale,
-      offset: {
-        left: x * canvasScale,
-        right: (width - crop.area.width - x) * canvasScale,
-        top: y * canvasScale,
-        bottom: (height - crop.area.height - y) * canvasScale
-      }
-    };
-    crop.pinch = new Pinch(touchTarget, pinchOptions);
-  }
-  setTimeout(init, 0);
+  var pinchOptions = {
+    target: target,
+    maxTargetWidth: maxTargetWidth,
+    maxTargetHeight: maxTargetHeight,
+    el: el,
+    maxScale: maxScale,
+    minScale: minScale,
+    loaded: loaded,
+    touchTarget: touchTarget,
+    width: width * canvasScale,
+    height: height * canvasScale,
+    offset: {
+      left: x * canvasScale,
+      right: (width - crop.area.width - x) * canvasScale,
+      top: y * canvasScale,
+      bottom: (height - crop.area.height - y) * canvasScale
+    }
+  };
+  crop.pinch = new Pinch(touchTarget, pinchOptions);
 }
 
 return Crop;
