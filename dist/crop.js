@@ -1,3 +1,10 @@
+
+   /*!
+    * @name xcrop v1.0.0
+    * @github https://github.com/ffx0s/xcrop
+    * @license MIT.
+    */
+  
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -457,6 +464,12 @@ function createCanvas(img, orientation, callback, doSquash, options) {
  * 简单封装创建节点和绑定移除事件的操作
  */
 
+/**
+ * 节点对象
+ * @param {String} tagName 节点标签
+ * @param {Object} attr 属性
+ * @param {Array} children 子节点
+ */
 function Element(tagName, attr) {
   var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
@@ -850,6 +863,7 @@ var Easing = {
 
 };
 
+// requestAnimationFrame 兼容处理
 var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
   return window.setTimeout(callback, 1000 / 60);
 };
@@ -1492,6 +1506,9 @@ addActions(Pinch);
 // 添加验证相关的原型方法
 addValidation(Pinch);
 
+/**
+ * 获取裁剪默认选项
+ */
 function getDefaultOptions() {
   return {
     // 允许图片的最大宽度
