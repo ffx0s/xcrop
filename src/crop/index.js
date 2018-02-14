@@ -58,7 +58,6 @@ Crop.prototype = {
   init: function (options) {
     this.options = extend(getDefaultOptions(), options)
     this.create()
-    Crop.count ++
   },
   /**
    * 创建dom节点
@@ -212,14 +211,12 @@ Crop.prototype = {
   render: function () {
     const crop = this
     const options = crop.options
-
-    if (Crop.count <= 1) {
+    if (!Crop.isRenderStyle) {
       renderStyle(crop.styles)
+      Crop.isRenderStyle = true
     }
     options.el.appendChild(crop.root.el)
-
     initPinch(crop)
-
     setTimeout(() => { options.mounted.call(crop) }, 0)
   },
   get: function (config = { width: undefined, height: undefined, type: 'image/jpeg', quality: 0.85, format: 'canvas' }) {
@@ -275,10 +272,16 @@ Crop.prototype = {
     }
   },
   show: function () {
-    this.root.el.style.display = 'block'
+    // 加定时器保证在其他任务完成之后执行
+    setTimeout(() => {
+      this.root.el.style.display = 'block'
+    })
   },
   hide: function () {
-    this.root.el.style.display = 'none'
+    // 加定时器保证在其他任务完成之后执行
+    setTimeout(() => {
+      this.root.el.style.display = 'none'
+    })
   },
   destroy: function () {
     const crop = this
@@ -300,35 +303,32 @@ Crop.prototype = {
   }
 }
 
-Crop.count = 0
+Crop.isRenderStyle = false
 Crop.loadImage = imageToCanvas
 Crop.Pinch = Pinch
 
 function initPinch (crop) {
-  function init () {
-    const { target, maxTargetWidth, maxTargetHeight, canvasScale, x, y, el, maxScale, minScale, loaded } = crop.options
-    const { el: touchTarget, width, height } = crop.root
-    const pinchOptions = {
-      target,
-      maxTargetWidth,
-      maxTargetHeight,
-      el,
-      maxScale,
-      minScale,
-      loaded,
-      touchTarget,
-      width: width * canvasScale,
-      height: height * canvasScale,
-      offset: {
-        left: x * canvasScale,
-        right: (width - crop.area.width - x) * canvasScale,
-        top: y * canvasScale,
-        bottom: (height - crop.area.height - y) * canvasScale
-      }
+  const { target, maxTargetWidth, maxTargetHeight, canvasScale, x, y, el, maxScale, minScale, loaded } = crop.options
+  const { el: touchTarget, width, height } = crop.root
+  const pinchOptions = {
+    target,
+    maxTargetWidth,
+    maxTargetHeight,
+    el,
+    maxScale,
+    minScale,
+    loaded,
+    touchTarget,
+    width: width * canvasScale,
+    height: height * canvasScale,
+    offset: {
+      left: x * canvasScale,
+      right: (width - crop.area.width - x) * canvasScale,
+      top: y * canvasScale,
+      bottom: (height - crop.area.height - y) * canvasScale
     }
-    crop.pinch = new Pinch(touchTarget, pinchOptions)
   }
-  setTimeout(init, 0)
+  crop.pinch = new Pinch(touchTarget, pinchOptions)
 }
 
 export default Crop

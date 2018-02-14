@@ -49,10 +49,10 @@
         fileInput.value = ''
       },
       confirm: function () {
-        this.hide()
         createImage(this.get({width: 600, format: 'url'}).url, 300)
         createImage(this.get({width: 300, format: 'url'}).url, 150)
         createImage(this.get({width: 150, format: 'url'}).url, 75)
+        this.hide()
         fileInput.value = ''
       }
     }
@@ -76,19 +76,25 @@
     // 如果显示/隐藏的时候需要过渡动画，则重写组件的显示、隐藏方法，默认的方法没有过渡动画，只是改变了display属性
     // 通过改变class实现动画
     Crop.prototype.show = function () {
-      const el = this.root.el
-      el.style.display = 'block'
-      setTimeout(function() {
-        el.className = 'crop-wrap show'
-      }, 20)
+      const that = this
+      setTimeout(function () {
+        const el = that.root.el
+        el.style.display = 'block'
+        setTimeout(function() {
+          el.className = 'crop-wrap show'
+        }, 20)
+      })
     }
 
     Crop.prototype.hide = function () {
-      const el = this.root.el
-      el.className = 'crop-wrap hide'
+      const that = this
       setTimeout(function() {
-        el.style.display = 'none'
-      }, 300)
+        const el = that.root.el
+        el.className = 'crop-wrap hide'
+        setTimeout(function() {
+          el.style.display = 'none'
+        }, 300)
+      })
     }
   </script>
 </html>
