@@ -1,9 +1,9 @@
 
-   /*!
-    * @name xcrop v1.0.0
-    * @github https://github.com/ffx0s/xcrop
-    * @license MIT.
-    */
+  /*!
+   * @name xcrop v1.0.2
+   * @github https://github.com/ffx0s/xcrop
+   * @license MIT.
+   */
   
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
