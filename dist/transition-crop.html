@@ -29,7 +29,6 @@
   <button onclick="window.crop && window.crop.destroy();window.crop=null;">销毁组件</button>
   <script src="crop.js"></script>
   <script>
-    var fileInput = document.getElementById('file-input')
     var options = {
       width: 300,
       height: 300,
@@ -42,28 +41,27 @@
         })
       },
       loaded: function () {
-        window.crop.show()
+        this.show()
       },
       cancle: function () {
         this.hide()
-        fileInput.value = ''
       },
       confirm: function () {
         createImage(this.get({width: 600, format: 'url'}).url, 300)
         createImage(this.get({width: 300, format: 'url'}).url, 150)
         createImage(this.get({width: 150, format: 'url'}).url, 75)
         this.hide()
-        fileInput.value = ''
       }
     }
-
     window.crop = new Crop(options)
-    fileInput.onchange = onChange
+
+    document.getElementById('file-input').onchange = onChange
 
     function onChange (e) {
       var file = e.target.files[0]
       if (!file) return false
       window.crop.load(file)
+      this.value = ''
     }
 
     function createImage (src, width) {
