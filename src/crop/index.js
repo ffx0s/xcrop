@@ -317,9 +317,9 @@ function initPinch (crop) {
     el,
     maxScale,
     minScale,
-    loaded,
     touchTarget,
     width: width * canvasScale,
+    loaded: loaded.bind(crop),
     height: height * canvasScale,
     offset: {
       left: x * canvasScale,
