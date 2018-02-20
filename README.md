@@ -8,9 +8,11 @@
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
 
 简单使用：  
+
 <img src="https://o818xvhxo.qnssl.com/o_1c6p8h25krv6v2eqo9aao1b4p9.png" />  
 
 带显示隐藏过渡动画：  
+
 <img src="https://o818xvhxo.qnssl.com/o_1c6p8l5prv8u1c5o14o6lmj163h.png" />  
 
 ## 安装
