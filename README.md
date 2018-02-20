@@ -1,13 +1,11 @@
 # 移动端裁剪插件  
 
-[![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop)  
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop)[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
 > 使用原生javascript、canvas实现的移动端裁剪插件，无任何依赖. 
 
-<img src="https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif" width="350" />
-
 ## Example
+[GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
 
 <img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-qrcode.png" />
 
