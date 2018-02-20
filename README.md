@@ -1,13 +1,17 @@
 # 移动端裁剪插件  
 
-[![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop)[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
 > 使用原生javascript、canvas实现的移动端裁剪插件，无任何依赖. 
 
-## Example
+## 例子
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
 
-<img src="http://7jptea.com1.z0.glb.clouddn.com/crop/crop-qrcode.png" />
+简单使用：  
+<img src="https://o818xvhxo.qnssl.com/o_1c6p8h25krv6v2eqo9aao1b4p9.png" />  
+
+带显示隐藏过渡动画：  
+<img src="https://o818xvhxo.qnssl.com/o_1c6p8l5prv8u1c5o14o6lmj163h.png" />  
 
 ## 安装
 
@@ -15,46 +19,35 @@ Install with [npm](https://www.npmjs.com/package/xcrop): `npm install xcrop --sa
 
 ## 使用
 
+```html
+<input type="file" id="file-input" accept="image/*">
+```
+
 ``` js
 import Crop from 'xcrop'
 
 const options = {
-  width: 300,
-  height: 300,
+  loaded: function () {
+    this.show()
+  },
   cancle: function () {
     this.hide()
   },
   confirm: function () {
+    console.log(this.get({width: 600, format: 'url'}).url)
     this.hide()
-    console.log(this.get({width: 600}))
   }
 }
-const file = 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg'
 const crop = new Crop(options)
-crop.load(file)
-```
 
-或者：
-
-``` js
-<script src="crop.js"></script>
-
-<script>
-  var options = {
-    width: 300,
-    height: 300,
-    cancle: function () {
-      this.hide()
-    },
-    confirm: function () {
-      this.hide()
-      console.log(this.get({width: 600}))
-    }
-  }
-  var file = 'http://7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg'
-  var crop = new Crop(options)
+function onChange (e) {
+  var file = e.target.files[0]
+  if (!file) return false
   crop.load(file)
-</script>
+  this.value = ''
+}
+
+document.getElementById('file-input').onchange = onChange
 ```
 
 ## Options
@@ -239,7 +232,4 @@ Android 4.2+, iOS 8+
 
 ## License
 
-xcrop is released under the [MIT License](http://desandro.mit-license.org/). Have at it.
-
-
-  [1]: http://7jptea.com1.z0.glb.clouddn.com/crop/crop-1.jpg?imageView2/2/w/350
+xcrop is released under the [MIT License](http://desandro.mit-license.org/). Have at it.  
