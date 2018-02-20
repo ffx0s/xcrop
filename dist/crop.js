@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.0.2
+   * @name xcrop v1.0.3
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -1768,9 +1768,9 @@ function initPinch(crop) {
     el: el,
     maxScale: maxScale,
     minScale: minScale,
-    loaded: loaded,
     touchTarget: touchTarget,
     width: width * canvasScale,
+    loaded: loaded.bind(crop),
     height: height * canvasScale,
     offset: {
       left: x * canvasScale,

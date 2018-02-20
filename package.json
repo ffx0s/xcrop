@@ -1,6 +1,6 @@
 {
   "name": "xcrop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "image cropping plugin",
   "main": "dist/crop.js",
   "scripts": {
