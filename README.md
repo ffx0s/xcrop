@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 使用原生javascript、canvas实现的移动端裁剪插件，无任何依赖. 
+> 原生javascript、canvas实现的移动端裁剪插件，无任何依赖，体积小，接近原生的体验效果，可处理较大的图片.
 
 ## 例子
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
