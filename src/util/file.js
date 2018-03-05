@@ -59,12 +59,13 @@ export function objectURLToBlob (url, callback) {
   http.send()
 }
 
-export function httpURLToArrayBuffer (url, callback) {
+export function httpURLToArrayBuffer (url, callback, errorCallback) {
   let http = new window.XMLHttpRequest()
   http.onload = function () {
     if (this.status === 200 || this.status === 0) {
       callback(http.response)
     } else {
+      errorCallback && errorCallback()
       throw new Error('Could not load image')
     }
     http = null

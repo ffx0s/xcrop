@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+  <style>
+    *{
+      margin: 0;
+      padding:0;
+    }
+    .zoom {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="zoom" class="zoom"></div>
+  <!-- <img src="./IMG_0102.JPG" id="image" alt=""> -->
+  <input type="file" id="fileUpload">
+  <script src="../dist/crop.js"></script>
+  <script>
+    var pinch = new Crop.Pinch('#zoom')
+    // pinch.load('//7jptea.com1.z0.glb.clouddn.com/test/images/test3.jpg')
+    // pinch.load('https://o818xvhxo.qnssl.com/o_1c7m0qmvv12qo193l16d11nncsss9.JPG')
+    // pinch.load('https://o818xvhxo.qnssl.com/o_1c7dnoh4r1e511m0b3qrabt9b6e.jpg')
+    pinch.load('../dist/IMG_0102.JPG')
+    // pinch.load('blob:http://192.168.199.193:9090/25f247b1-9144-4c8d-8e63-e53d64a53a0c')
+    // pinch.load(document.getElementById('image'))
+    document.getElementById('fileUpload').onchange = function (e) {
+      var file = e.target.files[0]
+      pinch.load(file)
+    }
+    ;['loaded', 'error', 'dragstart', 'dragmove', 'dragend', 'pinchstart', 'pinchmove', 'pinchend'].forEach(function (eventName) {
+      pinch.on(eventName, function (e) {
+        console.log(eventName)
+      })
+    })
+  </script>
+</html>

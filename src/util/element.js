@@ -2,19 +2,17 @@
  * 简单封装创建节点和绑定移除事件的操作
  */
 
-import { noop } from './shared'
+import { noop, isPlainObject } from './shared'
 
 /**
  * 节点对象
  * @param {String} tagName 节点标签
- * @param {Object} attr 属性
+ * @param {Object} props 属性
  * @param {Array} children 子节点
  */
-export function Element (tagName, attr, children = []) {
-  for (let name in attr) {
-    this[name] = attr[name]
-  }
+export function Element (tagName, props, children = []) {
   this.tagName = tagName
+  this.props = props
   this.children = children
 }
 
@@ -22,10 +20,27 @@ Element.prototype = {
   // 创建节点
   create: function () {
     this.el = document.createElement(this.tagName)
-    this.el.className = this.className
+    this.setProps()
     this.addEvent()
     return this.el
+  },
+  setProps: function () {
+    const props = this.props
+    Object.keys(props).forEach(name => {
+      const value = props[name]
+      if (isPlainObject(value)) {
+        patchObject(this.el, name, value)
+      } else {
+        this.el[value !== null ? 'setAttribute' : 'removeAttribute'](name, value)
+      }
+    })
   }
+}
+
+function patchObject (node, key, props) {
+  Object.keys(props).forEach(name => {
+    node[key][name] = props[name]
+  })
 }
 
 /**
@@ -95,3 +110,21 @@ export function renderStyle (cssText, elem = document.getElementsByTagName('head
   elem.appendChild(styleElem)
   return styleElem
 }
+
+const firstToUpperCase = str => { return str.charAt(0).toUpperCase() + str.slice(1) }
+
+/**
+ * 设置CSS样式
+ * @param {Object} el 节点
+ * @param {Object} css 样式
+ */
+export function setStyle (el, css) {
+  for (let prop in css) {
+    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
+      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = css[prop]
+    } else {
+      el.style[prop] = css[prop]
+    }
+  }
+}
+

@@ -1,5 +1,5 @@
 import { dataURItoBlob, objectURLToBlob, httpURLToArrayBuffer, isObjectURL, URL } from './file'
-import { extend } from './shared'
+import { extend, isIOS, noop } from './shared'
 
 export const isBase64Image = src => src.indexOf(';base64,') > 0
 
@@ -53,7 +53,6 @@ export function renderImageToCanvas (img, canvas, options, doSquash) {
   const ctx = canvas.getContext('2d')
 
   ctx.save()
-  transformCoordinate(canvas, ctx, width, height, options.orientation)
   const subsampled = detectSubsampling(img)
   if (subsampled) {
     iw /= 2
@@ -137,25 +136,24 @@ function detectVerticalSquash (img, iw, ih) {
 }
 
 /**
- * 改变canvas的方向
+ * 根据 orientation 改变 canvas 方向
  * @param {Element} canvas 画布
  * @param {Object} ctx 画布上下文
  * @param {Number} width 画布宽度
  * @param {Number} height 画布高度
- * @param {Number} srcOrientation 方向
+ * @param {Number} orientation 方向
  */
-export function transformCoordinate (canvas, ctx, width, height, srcOrientation) {
+export function transformCoordinate (canvas, ctx, width, height, orientation) {
   // set proper canvas dimensions before transform & export
-  if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
+  if ([5, 6, 7, 8].indexOf(orientation) > -1) {
     canvas.width = height
     canvas.height = width
   } else {
     canvas.width = width
     canvas.height = height
   }
-
   // transform context before drawing image
-  switch (srcOrientation) {
+  switch (orientation) {
     case 2: ctx.transform(-1, 0, 0, 1, width, 0); break
     case 3: ctx.transform(-1, 0, 0, -1, width, height); break
     case 4: ctx.transform(1, 0, 0, -1, 0, height); break
@@ -196,93 +194,174 @@ export function imgCover (imgW, imgH, divW, divH) {
   }
 }
 
+export function fileToArrayBuffer (file, callback, errorCallback) {
+  const fileReader = new window.FileReader()
+  fileReader.onload = e => { callback(e.target.result) }
+  fileReader.onerror = errorCallback || function (error) { console.error('fileToArrayBuffer error: ', error) }
+  fileReader.readAsArrayBuffer(file)
+}
+
+/**
+ * 加载图片
+ * @param {String} src 路径
+ * @param {Function} callback onload 函数
+ */
+export function loadImage (src, callback, errorCallback) {
+  const image = new window.Image()
+  if (!isBase64Image(src)) {
+    image.crossOrigin = '*'
+  }
+  image.onload = () => { callback(image) }
+  image.onerror = errorCallback || function (error) { console.error('loadImage error: ', error) }
+  image.src = src
+  return image
+}
+
+function commonLoadImageAction (target, callback, errorCallback) {
+  loadImage(target, callback, errorCallback)
+}
+
+// 为每种类型设置统一的输出函数
+const actions = {
+  url: {
+    getArrayBuffer (url, callback, errorCallback) {
+      httpURLToArrayBuffer(url, callback, errorCallback)
+    },
+    toImage: commonLoadImageAction
+  },
+  file: {
+    getArrayBuffer (file, callback, errorCallback) {
+      fileToArrayBuffer(file, callback, errorCallback)
+    },
+    toImage (file, callback, errorCallback) {
+      loadImage(URL.createObjectURL(file), callback, errorCallback)
+    }
+  },
+  objectURL: {
+    getArrayBuffer (objectURL, callback, errorCallback) {
+      objectURLToBlob(objectURL, file => {
+        fileToArrayBuffer(file, callback, errorCallback)
+      })
+    },
+    toImage: commonLoadImageAction
+  },
+  base64: {
+    getArrayBuffer (base64, callback, errorCallback) {
+      fileToArrayBuffer(dataURItoBlob(base64), callback, errorCallback)
+    },
+    toImage: commonLoadImageAction
+  },
+  imageEl: {
+    getArrayBuffer (imageEl, callback, errorCallback) {
+      httpURLToArrayBuffer(imageEl.src, callback, errorCallback)
+    },
+    toImage (imageEl, callback) {
+      callback(imageEl)
+    }
+  }
+}
+
 /**
  * 将图片转成canvas
  * @param {(string|file|element)} target 目标
  * @param {Function} callback 转换成功回调函数
  * @param {Object} opt 可选项
  */
-export function imageToCanvas (target, callback, opt) {
-  const options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt)
-
-  function imageOrientation (arrayBuffer, file) {
-    const orientation = getOrientation(arrayBuffer)
-    const isBlob = typeof file !== 'string'
-    const src = isBlob ? URL.createObjectURL(file) : file
-    const doSquash = isBlob && file.type === 'image/jpeg'
-    const img = new window.Image()
-    if (!isBase64Image(src)) {
-      img.crossOrigin = '*'
-    }
-    img.onload = function () {
-      createCanvas(img, orientation, callback, doSquash, options)
-      isBlob && URL.revokeObjectURL(src)
-    }
-    img.src = src
-  }
-
-  function handleBinaryFile (file) {
-    const fileReader = new window.FileReader()
-    fileReader.onload = function (e) {
-      imageOrientation(e.target.result, file)
-    }
-    fileReader.readAsArrayBuffer(file)
-  }
-
-  // 文件对象
+export function imageToCanvas (target, callback, opts) {
+  const options = extend({
+    maxWidth: 2000,
+    maxHeight: 2000,
+    orientation: true,
+    errorCallback: noop
+  }, opts)
+  let type = ''
+  // file
   if (window.FileReader && (target instanceof window.Blob || target instanceof window.File)) {
-    handleBinaryFile(target)
-    return
-  }
-
-  // imageElement 或者 canvasElement
-  if (typeof target === 'object' && target.nodeType) {
+    type = 'file'
+  } else if (isObjectURL(target)) {
+    // objectURL
+    type = 'objectURL'
+  } else if (typeof target === 'object' && target.nodeType) {
+    // image
     if (target.tagName === 'IMG') {
-      imageToCanvas(target.src, callback)
+      type = 'imageEl'
     }
+    // canvas
     if (target.tagName === 'CANVAS') {
       callback(target)
+      return
     }
-    return
+  } else {
+    // http/https url
+    type = 'url'
   }
+  // 将目标转成 image 对象
+  actions[type].toImage(target, image => {
+    // 如果需要修正图片方向，则获取当前图片方向
+    if (options.orientation) {
+      // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
+      actions[type].getArrayBuffer(target, arrayBuffer => {
+        const orientation = getOrientation(arrayBuffer)
+        check(target, image, orientation)
+      }, options.errorCallback)
+    } else {
+      check(target, image)
+    }
+  }, options.errorCallback)
 
-  // base64图片
-  if (isBase64Image(target)) {
-    handleBinaryFile(dataURItoBlob(target))
-    return
-  }
-
-  // objectURL
-  if (isObjectURL(target)) {
-    objectURLToBlob(target, handleBinaryFile)
-  } else { // http/https图片地址
-    httpURLToArrayBuffer(target, function (arrayBuffer) {
-      imageOrientation(arrayBuffer, target)
-    })
+  function check (target, image, orientation) {
+    const canvas = document.createElement('canvas')
+    const imageWidth = image.width
+    const imageHeight = image.height
+    const ctx = canvas.getContext('2d')
+    // 修正图片方向
+    function shouldTransformCoordinate (width, height) {
+      if (options.orientation) {
+        transformCoordinate(canvas, ctx, width, height, orientation)
+      } else {
+        canvas.width = width
+        canvas.height = height
+      }
+    }
+    // 判断是否为IOS端，如果是并且图片大于指定宽高则分片绘制防止绘制失败
+    if (isIOS && imageWidth * imageHeight > options.maxWidth * options.maxHeight) {
+      const size = resetSize(image, options)
+      shouldTransformCoordinate(size.width, size.height)
+      renderImageToCanvas(image, canvas, size, true)
+    } else {
+      shouldTransformCoordinate(imageWidth, imageHeight)
+      ctx.drawImage(image, 0, 0)
+    }
+    callback(canvas)
+    // canvas.style.width = '100%'
+    // document.getElementById('degugger').appendChild(canvas)
   }
 }
 
-function createCanvas (img, orientation, callback, doSquash, options) {
-  const canvas = document.createElement('canvas')
+/**
+ * 重置宽高比例，判断图片是否大于最大宽度/高度
+ * @param {Element} image 图片对象
+ * @param {Object} options 选项
+ */
+function resetSize (image, options) {
   let { maxWidth, maxHeight, width, height } = options
-  const imgWidth = img.naturalWidth
-  const imgHeight = img.naturalHeight
+  const imageWidth = image.naturalWidth
+  const imageHeight = image.naturalHeight
   if (width && !height) {
-    height = (imgHeight * width / imgWidth) << 0
+    height = (imageHeight * width / imageWidth) << 0
   } else if (height && !width) {
-    width = (imgWidth * height / imgHeight) << 0
+    width = (imageWidth * height / imageHeight) << 0
   } else {
-    width = imgWidth
-    height = imgHeight
+    width = imageWidth
+    height = imageHeight
   }
-  if (maxWidth && imgWidth > maxWidth) {
+  if (maxWidth && imageWidth > maxWidth) {
     width = maxWidth
-    height = (imgHeight * width / imgWidth) << 0
+    height = (imageHeight * width / imageWidth) << 0
   }
   if (maxHeight && height > maxHeight) {
     height = maxHeight
-    width = (imgWidth * height / imgHeight) << 0
+    width = (imageWidth * height / imageHeight) << 0
   }
-  renderImageToCanvas(img, canvas, { orientation, width, height }, doSquash)
-  callback(canvas)
+  return { width, height }
 }

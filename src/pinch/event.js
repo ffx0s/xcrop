@@ -3,7 +3,7 @@ import { noop } from '../util/shared'
 import animate from '../util/animate'
 
 export function initEvent (pinch) {
-  pinch.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend']
+  pinch.events = ['mousewheel', 'touchstart', 'touchmove', 'touchend']
   pinch.observer = new Observer()
   // 最后一次触摸操作的参数
   pinch.last = {
@@ -23,7 +23,7 @@ export function addEvent (Pinch) {
   proto.bindEvent = function () {
     const pinch = this
     const target = pinch.options.touchTarget || pinch.canvas
-    pinch.eventList.forEach(value => {
+    pinch.events.forEach(value => {
       target.addEventListener(value, pinch, false)
     })
   }
@@ -51,7 +51,7 @@ export function addEvent (Pinch) {
   proto.mousewheel = function (e) {
     e.preventDefault()
     const pinch = this
-    pinch.rect = pinch.canvas.getBoundingClientRect()
+    pinch.rect = pinch.wrap.getBoundingClientRect()
     const point = {
       x: (e.clientX - pinch.rect.left) * pinch.canvasScale,
       y: (e.clientY - pinch.rect.top) * pinch.canvasScale
@@ -68,7 +68,7 @@ export function addEvent (Pinch) {
     e.preventDefault()
     const pinch = this
     const touches = e.touches
-    pinch.rect = pinch.canvas.getBoundingClientRect()
+    pinch.rect = pinch.wrap.getBoundingClientRect()
     pinch.animation.stop()
     if (touches.length === 2) {
       pinch.pinchstart(e)
@@ -142,15 +142,15 @@ export function addEvent (Pinch) {
       // 缓冲动画
       const vx = pinch.last.dis.x / pinch.last.dis.time
       const vy = pinch.last.dis.y / pinch.last.dis.time
-      const speed = 0.5
+      const speed = 0.3
       if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
         const time = 200
         let x = pinch.position.x + vx * time
         let y = pinch.position.y + vy * time
         const result = pinch.checkBorder({ x, y }, pinch.scale, { x, y })
         if (result.isDraw) {
-          x = result.xpos
-          y = result.ypos
+          x = result.xpos + vx * 8
+          y = result.ypos + vy * 8
         }
         pinch.animation = animate({
           time: time * 2,
@@ -222,6 +222,7 @@ export function addEvent (Pinch) {
   ;['on', 'off'].forEach(value => {
     proto[value] = function (name, fn) {
       this.observer[value](name, fn && fn.bind(this))
+      return this.observer
     }
   })
 }

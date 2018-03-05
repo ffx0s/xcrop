@@ -1,4 +1,5 @@
 import { imgCover, imageToCanvas } from '../util/image'
+import { setStyle } from '../util/element'
 import animate from '../util/animate'
 
 export function initActions (pinch) {
@@ -6,10 +7,10 @@ export function initActions (pinch) {
   pinch.scale = 1
   // 图片缩放原点坐标
   pinch.firstOrigin = { x: 0, y: 0 }
-  // 图片相对于canvas的坐标
+  // 图片大小与位置
   pinch.position = { x: 0, y: 0, width: 0, height: 0 }
-  // 图片数据
-  pinch.image = { width: 0, height: 0, el: null }
+  // 原图数据
+  pinch.originImage = { width: 0, height: 0, el: null }
 }
 
 export function addActions (Pinch) {
@@ -18,47 +19,60 @@ export function addActions (Pinch) {
   // 加载目标图片
   proto.load = function (target, callback) {
     const pinch = this
-    const { width, height, offset, loaded, maxTargetWidth, maxTargetHeight, maxScale } = pinch.options
+    const {
+      width, height, offset,
+      maxTargetHeight, maxTargetWidth
+    } = pinch.options
 
-    imageToCanvas(target, success, { maxWidth: maxTargetWidth, maxHeight: maxTargetHeight })
+    imageToCanvas(target, success, {
+      maxWidth: maxTargetWidth,
+      maxHeight: maxTargetHeight,
+      errorCallback (error) {
+        pinch.emit('error', error)
+      }
+    })
 
     function success (canvas) {
-      // image.el为原目标图片的canvas版本，后续画布drawImage会用到
-      const image = { el: canvas, width: canvas.width, height: canvas.height }
+      // 原图信息
+      const originImage = {
+        el: canvas,
+        width: canvas.width,
+        height: canvas.height
+      }
       // 减去偏移量获得实际容器的大小
       const pinchWidth = width - (offset.left + offset.right)
       const pinchHeight = height - (offset.top + offset.bottom)
-      // 通过imgCover实现图片铺满容器，返回图片的坐标位置
-      pinch.position = imgCover(image.width, image.height, pinchWidth, pinchHeight)
+      // 图片铺满容器，返回图片的坐标位置
+      pinch.position = imgCover(originImage.width, originImage.height, pinchWidth, pinchHeight)
       // 需要加上偏移量
       pinch.position.x += offset.left
       pinch.position.y += offset.top
-      // 图片缩放比例
-      pinch.scale = pinch.position.width / image.width
-      // 图片尺寸比画布小时，修正最大比例和最小比例
-      const _maxScale = Math.max(pinch.scale, maxScale)
-      const _minScale = pinch.scale
-      pinch.options.maxScale = _maxScale === _minScale ? pinch.scale * Math.max(maxScale, 1) : maxScale
-      pinch.options.minScale = _minScale
-      pinch.image = image
+      pinch.originImage = originImage
       // 图片原点
       pinch.firstOrigin = {
         x: pinch.position.x,
         y: pinch.position.y
       }
+      pinch.image.src = pinch.originImage.el.toDataURL('image/jpeg')
+      setStyle(pinch.image, {
+        width: pinch.position.width + 'px',
+        height: pinch.position.height + 'px'
+      })
+      pinch.render()
       pinch.draw()
       setTimeout(() => {
-        callback && callback()
-        loaded.call(pinch)
+        callback && callback.call(pinch)
+        pinch.emit('loaded', pinch)
       })
     }
+    return this
   }
 
   proto.remove = function () {
     const pinch = this
     const target = pinch.options.touchTarget || pinch.canvas
 
-    pinch.eventList.forEach(value => {
+    pinch.events.forEach(value => {
       target.removeEventListener(value, pinch, false)
     })
 
@@ -67,16 +81,10 @@ export function addActions (Pinch) {
 
   proto.draw = function () {
     const pinch = this
-    const options = pinch.options
-    const context = pinch.context
     const { x, y } = pinch.position
-
-    context.clearRect(0, 0, options.width, options.height)
-    context.save()
-    pinch.context.translate(x, y)
-    context.scale(pinch.scale, pinch.scale)
-    context.drawImage(pinch.image.el, 0, 0, pinch.image.width, pinch.image.height)
-    context.restore()
+    setStyle(pinch.canvas, {
+      transform: `translate3d(${x}px, ${y}px, 0) scale(${pinch.scale})`
+    })
   }
 
   proto.moveTo = function (xpos, ypos, transition) {

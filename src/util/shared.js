@@ -21,3 +21,16 @@ export function extend (target, object) {
   }
   return target
 }
+
+const toString = Object.prototype.toString
+
+/**
+ * 目标是否为对象
+ * @param {*} obj 检测对象
+ */
+export function isPlainObject (obj) {
+  return toString.call(obj) === '[object Object]'
+}
+
+// 是否为 IOS 端
+export const isIOS = !!navigator.userAgent.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)

@@ -35,6 +35,19 @@ function extend(target, object) {
   return target;
 }
 
+var toString = Object.prototype.toString;
+
+/**
+ * 目标是否为对象
+ * @param {*} obj 检测对象
+ */
+function isPlainObject(obj) {
+  return toString.call(obj) === '[object Object]';
+}
+
+// 是否为 IOS 端
+var isIOS = !!navigator.userAgent.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/);
+
 var URL = window.URL && window.URL.createObjectURL ? window.URL : window.webkitURL && window.webkitURL.createObjectURL ? window.webkitURL : null;
 
 function dataURItoBlob(dataURI) {
@@ -96,12 +109,13 @@ function objectURLToBlob(url, callback) {
   http.send();
 }
 
-function httpURLToArrayBuffer(url, callback) {
+function httpURLToArrayBuffer(url, callback, errorCallback) {
   var http = new window.XMLHttpRequest();
   http.onload = function () {
     if (this.status === 200 || this.status === 0) {
       callback(http.response);
     } else {
+      errorCallback && errorCallback();
       throw new Error('Could not load image');
     }
     http = null;
@@ -212,7 +226,6 @@ function renderImageToCanvas(img, canvas, options, doSquash) {
   var ctx = canvas.getContext('2d');
 
   ctx.save();
-  transformCoordinate(canvas, ctx, width, height, options.orientation);
   var subsampled = detectSubsampling(img);
   if (subsampled) {
     iw /= 2;
@@ -297,25 +310,24 @@ function detectVerticalSquash(img, iw, ih) {
 }
 
 /**
- * 改变canvas的方向
+ * 根据 orientation 改变 canvas 方向
  * @param {Element} canvas 画布
  * @param {Object} ctx 画布上下文
  * @param {Number} width 画布宽度
  * @param {Number} height 画布高度
- * @param {Number} srcOrientation 方向
+ * @param {Number} orientation 方向
  */
-function transformCoordinate(canvas, ctx, width, height, srcOrientation) {
+function transformCoordinate(canvas, ctx, width, height, orientation) {
   // set proper canvas dimensions before transform & export
-  if ([5, 6, 7, 8].indexOf(srcOrientation) > -1) {
+  if ([5, 6, 7, 8].indexOf(orientation) > -1) {
     canvas.width = height;
     canvas.height = width;
   } else {
     canvas.width = width;
     canvas.height = height;
   }
-
   // transform context before drawing image
-  switch (srcOrientation) {
+  switch (orientation) {
     case 2:
       ctx.transform(-1, 0, 0, 1, width, 0);break;
     case 3:
@@ -364,119 +376,201 @@ function imgCover(imgW, imgH, divW, divH) {
   };
 }
 
+function fileToArrayBuffer(file, callback, errorCallback) {
+  var fileReader = new window.FileReader();
+  fileReader.onload = function (e) {
+    callback(e.target.result);
+  };
+  fileReader.onerror = errorCallback || function (error) {
+    console.error('fileToArrayBuffer error: ', error);
+  };
+  fileReader.readAsArrayBuffer(file);
+}
+
 /**
- * 将图片转成canvas
- * @param {(string|file|element)} target 目标
- * @param {Function} callback 转换成功回调函数
- * @param {Object} opt 可选项
+ * 加载图片
+ * @param {String} src 路径
+ * @param {Function} callback onload 函数
  */
-function imageToCanvas(target, callback, opt) {
-  var options = extend({ maxWidth: 2000, maxHeight: 2000 }, opt);
+function loadImage(src, callback, errorCallback) {
+  var image = new window.Image();
+  if (!isBase64Image(src)) {
+    image.crossOrigin = '*';
+  }
+  image.onload = function () {
+    callback(image);
+  };
+  image.onerror = errorCallback || function (error) {
+    console.error('loadImage error: ', error);
+  };
+  image.src = src;
+  return image;
+}
 
-  function imageOrientation(arrayBuffer, file) {
-    var orientation = getOrientation(arrayBuffer);
-    var isBlob = typeof file !== 'string';
-    var src = isBlob ? URL.createObjectURL(file) : file;
-    var doSquash = isBlob && file.type === 'image/jpeg';
-    var img = new window.Image();
-    if (!isBase64Image(src)) {
-      img.crossOrigin = '*';
+function commonLoadImageAction(target, callback, errorCallback) {
+  loadImage(target, callback, errorCallback);
+}
+
+// 为每种类型设置统一的输出函数
+var actions = {
+  url: {
+    getArrayBuffer: function getArrayBuffer(url, callback, errorCallback) {
+      httpURLToArrayBuffer(url, callback, errorCallback);
+    },
+
+    toImage: commonLoadImageAction
+  },
+  file: {
+    getArrayBuffer: function getArrayBuffer(file, callback, errorCallback) {
+      fileToArrayBuffer(file, callback, errorCallback);
+    },
+    toImage: function toImage(file, callback, errorCallback) {
+      loadImage(URL.createObjectURL(file), callback, errorCallback);
     }
-    img.onload = function () {
-      createCanvas(img, orientation, callback, doSquash, options);
-      isBlob && URL.revokeObjectURL(src);
-    };
-    img.src = src;
+  },
+  objectURL: {
+    getArrayBuffer: function getArrayBuffer(objectURL, callback, errorCallback) {
+      objectURLToBlob(objectURL, function (file) {
+        fileToArrayBuffer(file, callback, errorCallback);
+      });
+    },
+
+    toImage: commonLoadImageAction
+  },
+  base64: {
+    getArrayBuffer: function getArrayBuffer(base64, callback, errorCallback) {
+      fileToArrayBuffer(dataURItoBlob(base64), callback, errorCallback);
+    },
+
+    toImage: commonLoadImageAction
+  },
+  imageEl: {
+    getArrayBuffer: function getArrayBuffer(imageEl, callback, errorCallback) {
+      httpURLToArrayBuffer(imageEl.src, callback, errorCallback);
+    },
+    toImage: function toImage(imageEl, callback) {
+      callback(imageEl);
+    }
   }
 
-  function handleBinaryFile(file) {
-    var fileReader = new window.FileReader();
-    fileReader.onload = function (e) {
-      imageOrientation(e.target.result, file);
-    };
-    fileReader.readAsArrayBuffer(file);
-  }
-
-  // 文件对象
+  /**
+   * 将图片转成canvas
+   * @param {(string|file|element)} target 目标
+   * @param {Function} callback 转换成功回调函数
+   * @param {Object} opt 可选项
+   */
+};function imageToCanvas(target, callback, opts) {
+  var options = extend({
+    maxWidth: 2000,
+    maxHeight: 2000,
+    orientation: true,
+    errorCallback: noop
+  }, opts);
+  var type = '';
+  // file
   if (window.FileReader && (target instanceof window.Blob || target instanceof window.File)) {
-    handleBinaryFile(target);
-    return;
-  }
-
-  // imageElement 或者 canvasElement
-  if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && target.nodeType) {
+    type = 'file';
+  } else if (isObjectURL(target)) {
+    // objectURL
+    type = 'objectURL';
+  } else if ((typeof target === 'undefined' ? 'undefined' : _typeof(target)) === 'object' && target.nodeType) {
+    // image
     if (target.tagName === 'IMG') {
-      imageToCanvas(target.src, callback);
+      type = 'imageEl';
     }
+    // canvas
     if (target.tagName === 'CANVAS') {
       callback(target);
+      return;
     }
-    return;
-  }
-
-  // base64图片
-  if (isBase64Image(target)) {
-    handleBinaryFile(dataURItoBlob(target));
-    return;
-  }
-
-  // objectURL
-  if (isObjectURL(target)) {
-    objectURLToBlob(target, handleBinaryFile);
   } else {
-    // http/https图片地址
-    httpURLToArrayBuffer(target, function (arrayBuffer) {
-      imageOrientation(arrayBuffer, target);
-    });
+    // http/https url
+    type = 'url';
+  }
+  // 将目标转成 image 对象
+  actions[type].toImage(target, function (image) {
+    // 如果需要修正图片方向，则获取当前图片方向
+    if (options.orientation) {
+      // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
+      actions[type].getArrayBuffer(target, function (arrayBuffer) {
+        var orientation = getOrientation(arrayBuffer);
+        check(target, image, orientation);
+      }, options.errorCallback);
+    } else {
+      check(target, image);
+    }
+  }, options.errorCallback);
+
+  function check(target, image, orientation) {
+    var canvas = document.createElement('canvas');
+    var imageWidth = image.width;
+    var imageHeight = image.height;
+    var ctx = canvas.getContext('2d');
+    // 修正图片方向
+    function shouldTransformCoordinate(width, height) {
+      if (options.orientation) {
+        transformCoordinate(canvas, ctx, width, height, orientation);
+      } else {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+    // 判断是否为IOS端，如果是并且图片大于指定宽高则分片绘制防止绘制失败
+    if (isIOS && imageWidth * imageHeight > options.maxWidth * options.maxHeight) {
+      var size = resetSize(image, options);
+      shouldTransformCoordinate(size.width, size.height);
+      renderImageToCanvas(image, canvas, size, true);
+    } else {
+      shouldTransformCoordinate(imageWidth, imageHeight);
+      ctx.drawImage(image, 0, 0);
+    }
+    callback(canvas);
+    // canvas.style.width = '100%'
+    // document.getElementById('degugger').appendChild(canvas)
   }
 }
 
-function createCanvas(img, orientation, callback, doSquash, options) {
-  var canvas = document.createElement('canvas');
+/**
+ * 重置宽高比例，判断图片是否大于最大宽度/高度
+ * @param {Element} image 图片对象
+ * @param {Object} options 选项
+ */
+function resetSize(image, options) {
   var maxWidth = options.maxWidth,
       maxHeight = options.maxHeight,
       width = options.width,
       height = options.height;
 
-  var imgWidth = img.naturalWidth;
-  var imgHeight = img.naturalHeight;
+  var imageWidth = image.naturalWidth;
+  var imageHeight = image.naturalHeight;
   if (width && !height) {
-    height = imgHeight * width / imgWidth << 0;
+    height = imageHeight * width / imageWidth << 0;
   } else if (height && !width) {
-    width = imgWidth * height / imgHeight << 0;
+    width = imageWidth * height / imageHeight << 0;
   } else {
-    width = imgWidth;
-    height = imgHeight;
+    width = imageWidth;
+    height = imageHeight;
   }
-  if (maxWidth && imgWidth > maxWidth) {
+  if (maxWidth && imageWidth > maxWidth) {
     width = maxWidth;
-    height = imgHeight * width / imgWidth << 0;
+    height = imageHeight * width / imageWidth << 0;
   }
   if (maxHeight && height > maxHeight) {
     height = maxHeight;
-    width = imgWidth * height / imgHeight << 0;
+    width = imageWidth * height / imageHeight << 0;
   }
-  renderImageToCanvas(img, canvas, { orientation: orientation, width: width, height: height }, doSquash);
-  callback(canvas);
+  return { width: width, height: height };
 }
 
 /**
  * 简单封装创建节点和绑定移除事件的操作
  */
 
-/**
- * 节点对象
- * @param {String} tagName 节点标签
- * @param {Object} attr 属性
- * @param {Array} children 子节点
- */
-function Element(tagName, attr) {
+function Element(tagName, props) {
   var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
 
-  for (var name in attr) {
-    this[name] = attr[name];
-  }
   this.tagName = tagName;
+  this.props = props;
   this.children = children;
 }
 
@@ -484,15 +578,35 @@ Element.prototype = {
   // 创建节点
   create: function create() {
     this.el = document.createElement(this.tagName);
-    this.el.className = this.className;
+    this.setProps();
     this.addEvent();
     return this.el;
-  }
+  },
+  setProps: function setProps() {
+    var _this = this;
 
-  /**
-   * 绑定/移除事件方法
-   */
-};['addEvent', 'removeEvent'].forEach(function (value) {
+    var props = this.props;
+    Object.keys(props).forEach(function (name) {
+      var value = props[name];
+      if (isPlainObject(value)) {
+        patchObject(_this.el, name, value);
+      } else {
+        _this.el[value !== null ? 'setAttribute' : 'removeAttribute'](name, value);
+      }
+    });
+  }
+};
+
+function patchObject(node, key, props) {
+  Object.keys(props).forEach(function (name) {
+    node[key][name] = props[name];
+  });
+}
+
+/**
+ * 绑定/移除事件方法
+ */
+['addEvent', 'removeEvent'].forEach(function (value) {
   Element.prototype[value] = function () {
     for (var eventName in this.events) {
       this.el[value + 'Listener'](eventName, this.events[eventName], false);
@@ -561,9 +675,70 @@ function renderStyle(cssText) {
   return styleElem;
 }
 
+var firstToUpperCase = function firstToUpperCase(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+/**
+ * 设置CSS样式
+ * @param {Object} el 节点
+ * @param {Object} css 样式
+ */
+function setStyle(el, css) {
+  for (var prop in css) {
+    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
+      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = css[prop];
+    } else {
+      el.style[prop] = css[prop];
+    }
+  }
+}
+
 function initRender(pinch) {
-  pinch.canvas = createCanvas$1(pinch.options.width, pinch.options.height);
-  pinch.context = pinch.canvas.getContext('2d');
+  var _pinch$options = pinch.options,
+      width = _pinch$options.width,
+      height = _pinch$options.height;
+
+  var wrap = document.createElement('div');
+  var canvas = document.createElement('div');
+  var image = new window.Image();
+
+  setStyle(wrap, {
+    position: 'absolute',
+    width: width + 'px',
+    height: height + 'px',
+    overflow: 'hidden'
+  });
+  setStyle(canvas, {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    right: 0,
+    transformOrigin: 'left top',
+    touchAction: 'none'
+  });
+  setStyle(image, {
+    position: 'absolute',
+    width: '100%'
+  });
+  canvas.appendChild(image);
+  wrap.appendChild(canvas);
+  // 是否需要图片遮罩层，防止微信保存图片菜单弹起
+  if (pinch.options.imageMask) {
+    var imageMask = document.createElement('div');
+    setStyle(imageMask, {
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+      height: '100%'
+    });
+    canvas.appendChild(imageMask);
+  }
+  pinch.wrap = wrap;
+  pinch.canvas = canvas;
+  pinch.image = image;
+  pinch.isRender = false;
 }
 
 function addRender(Pinch) {
@@ -571,29 +746,15 @@ function addRender(Pinch) {
 
   proto.render = function () {
     var pinch = this;
-    var options = pinch.options;
-    options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el;
-    options.el.appendChild(pinch.canvas);
-    // 获取canvas位于html里实际的大小
-    pinch.rect = pinch.canvas.getBoundingClientRect();
+    if (pinch.isRender) return;
+    pinch.options.el.appendChild(pinch.wrap);
+    // 获取容器大小
+    pinch.rect = pinch.wrap.getBoundingClientRect();
     // 利用canvas的宽度和实际的宽度作为它的大小比例
-    pinch.canvasScale = options.width / pinch.rect.width;
+    pinch.canvasScale = pinch.options.width / pinch.rect.width;
+    pinch.isRender = true;
+    pinch.bindEvent();
   };
-}
-
-/**
- * 创建一个宽高为100%的画布
- * @param {Number} width 画布宽度
- * @param {Number} height 画布高度
- */
-function createCanvas$1(width, height) {
-  var canvas = document.createElement('canvas');
-
-  canvas.width = width;
-  canvas.height = height;
-  canvas.style.cssText = 'width:100%;height:100%;';
-
-  return canvas;
 }
 
 var slice = Array.prototype.slice;
@@ -612,6 +773,7 @@ Observer.prototype = {
       }
       fn && ob.events[signal].push(fn);
     });
+    return ob;
   },
   emit: function emit(signals) {
     var ob = this;
@@ -863,7 +1025,6 @@ var Easing = {
 
 };
 
-// requestAnimationFrame 兼容处理
 var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
   return window.setTimeout(callback, 1000 / 60);
 };
@@ -931,7 +1092,7 @@ var animate = function (options) {
 };
 
 function initEvent(pinch) {
-  pinch.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
+  pinch.events = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
   pinch.observer = new Observer();
   // 最后一次触摸操作的参数
   pinch.last = {
@@ -951,7 +1112,7 @@ function addEvent(Pinch) {
   proto.bindEvent = function () {
     var pinch = this;
     var target = pinch.options.touchTarget || pinch.canvas;
-    pinch.eventList.forEach(function (value) {
+    pinch.events.forEach(function (value) {
       target.addEventListener(value, pinch, false);
     });
   };
@@ -979,7 +1140,7 @@ function addEvent(Pinch) {
   proto.mousewheel = function (e) {
     e.preventDefault();
     var pinch = this;
-    pinch.rect = pinch.canvas.getBoundingClientRect();
+    pinch.rect = pinch.wrap.getBoundingClientRect();
     var point = {
       x: (e.clientX - pinch.rect.left) * pinch.canvasScale,
       y: (e.clientY - pinch.rect.top) * pinch.canvasScale
@@ -996,7 +1157,7 @@ function addEvent(Pinch) {
     e.preventDefault();
     var pinch = this;
     var touches = e.touches;
-    pinch.rect = pinch.canvas.getBoundingClientRect();
+    pinch.rect = pinch.wrap.getBoundingClientRect();
     pinch.animation.stop();
     if (touches.length === 2) {
       pinch.pinchstart(e);
@@ -1070,15 +1231,15 @@ function addEvent(Pinch) {
       // 缓冲动画
       var vx = pinch.last.dis.x / pinch.last.dis.time;
       var vy = pinch.last.dis.y / pinch.last.dis.time;
-      var speed = 0.5;
+      var speed = 0.3;
       if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
         var time = 200;
         var x = pinch.position.x + vx * time;
         var y = pinch.position.y + vy * time;
         var result = pinch.checkBorder({ x: x, y: y }, pinch.scale, { x: x, y: y });
         if (result.isDraw) {
-          x = result.xpos;
-          y = result.ypos;
+          x = result.xpos + vx * 8;
+          y = result.ypos + vy * 8;
         }
         pinch.animation = animate({
           time: time * 2,
@@ -1147,6 +1308,7 @@ function addEvent(Pinch) {
   };['on', 'off'].forEach(function (value) {
     proto[value] = function (name, fn) {
       this.observer[value](name, fn && fn.bind(this));
+      return this.observer;
     };
   });
 }
@@ -1166,10 +1328,10 @@ function initActions(pinch) {
   pinch.scale = 1;
   // 图片缩放原点坐标
   pinch.firstOrigin = { x: 0, y: 0
-    // 图片相对于canvas的坐标
+    // 图片大小与位置
   };pinch.position = { x: 0, y: 0, width: 0, height: 0
-    // 图片数据
-  };pinch.image = { width: 0, height: 0, el: null };
+    // 原图数据
+  };pinch.originImage = { width: 0, height: 0, el: null };
 }
 
 function addActions(Pinch) {
@@ -1182,51 +1344,58 @@ function addActions(Pinch) {
         width = _pinch$options.width,
         height = _pinch$options.height,
         offset = _pinch$options.offset,
-        loaded = _pinch$options.loaded,
-        maxTargetWidth = _pinch$options.maxTargetWidth,
         maxTargetHeight = _pinch$options.maxTargetHeight,
-        maxScale = _pinch$options.maxScale;
+        maxTargetWidth = _pinch$options.maxTargetWidth;
 
 
-    imageToCanvas(target, success, { maxWidth: maxTargetWidth, maxHeight: maxTargetHeight });
+    imageToCanvas(target, success, {
+      maxWidth: maxTargetWidth,
+      maxHeight: maxTargetHeight,
+      errorCallback: function errorCallback(error) {
+        pinch.emit('error', error);
+      }
+    });
 
     function success(canvas) {
-      // image.el为原目标图片的canvas版本，后续画布drawImage会用到
-      var image = { el: canvas, width: canvas.width, height: canvas.height
+      // 原图信息
+      var originImage = {
+        el: canvas,
+        width: canvas.width,
+        height: canvas.height
         // 减去偏移量获得实际容器的大小
       };var pinchWidth = width - (offset.left + offset.right);
       var pinchHeight = height - (offset.top + offset.bottom);
-      // 通过imgCover实现图片铺满容器，返回图片的坐标位置
-      pinch.position = imgCover(image.width, image.height, pinchWidth, pinchHeight);
+      // 图片铺满容器，返回图片的坐标位置
+      pinch.position = imgCover(originImage.width, originImage.height, pinchWidth, pinchHeight);
       // 需要加上偏移量
       pinch.position.x += offset.left;
       pinch.position.y += offset.top;
-      // 图片缩放比例
-      pinch.scale = pinch.position.width / image.width;
-      // 图片尺寸比画布小时，修正最大比例和最小比例
-      var _maxScale = Math.max(pinch.scale, maxScale);
-      var _minScale = pinch.scale;
-      pinch.options.maxScale = _maxScale === _minScale ? pinch.scale * Math.max(maxScale, 1) : maxScale;
-      pinch.options.minScale = _minScale;
-      pinch.image = image;
+      pinch.originImage = originImage;
       // 图片原点
       pinch.firstOrigin = {
         x: pinch.position.x,
         y: pinch.position.y
       };
+      pinch.image.src = pinch.originImage.el.toDataURL('image/jpeg');
+      setStyle(pinch.image, {
+        width: pinch.position.width + 'px',
+        height: pinch.position.height + 'px'
+      });
+      pinch.render();
       pinch.draw();
       setTimeout(function () {
-        callback && callback();
-        loaded.call(pinch);
+        callback && callback.call(pinch);
+        pinch.emit('loaded', pinch);
       });
     }
+    return this;
   };
 
   proto.remove = function () {
     var pinch = this;
     var target = pinch.options.touchTarget || pinch.canvas;
 
-    pinch.eventList.forEach(function (value) {
+    pinch.events.forEach(function (value) {
       target.removeEventListener(value, pinch, false);
     });
 
@@ -1235,19 +1404,13 @@ function addActions(Pinch) {
 
   proto.draw = function () {
     var pinch = this;
-    var options = pinch.options;
-    var context = pinch.context;
     var _pinch$position = pinch.position,
         x = _pinch$position.x,
         y = _pinch$position.y;
 
-
-    context.clearRect(0, 0, options.width, options.height);
-    context.save();
-    pinch.context.translate(x, y);
-    context.scale(pinch.scale, pinch.scale);
-    context.drawImage(pinch.image.el, 0, 0, pinch.image.width, pinch.image.height);
-    context.restore();
+    setStyle(pinch.canvas, {
+      transform: 'translate3d(' + x + 'px, ' + y + 'px, 0) scale(' + pinch.scale + ')'
+    });
   };
 
   proto.moveTo = function (xpos, ypos, transition) {
@@ -1455,16 +1618,14 @@ var addGlobal = function (Pinch) {
 
 function getDefaultOptions$1() {
   return {
-    target: null,
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+    // 允许最大的图片宽高
     maxTargetWidth: 2000,
     maxTargetHeight: 2000,
-    el: null,
-    // canvas宽度
-    width: 800,
-    // canvas高度
-    height: 800,
-    // 最大缩放比例，最小缩放比例默认为 canvas 与图片大小计算的比例
+    // 最大/最小缩放比例
     maxScale: 2,
+    minScale: 1,
     touchTarget: null,
     // canvas位于容器的偏移量
     offset: {
@@ -1473,23 +1634,23 @@ function getDefaultOptions$1() {
       top: 0,
       bottom: 0
     },
-    loaded: noop
+    // 是否需要图片遮罩层，防止微信保存图片菜单弹起
+    imageMask: true
   };
 }
 
-function Pinch(el, options) {
-  options.el = el;
-  this.init(options);
-  this.render();
-  this.bindEvent();
-  this.load(options.target);
+function Pinch(el) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var pinch = this;
+  options.el = typeof el === 'string' ? document.querySelector(el) : el;
+  pinch.options = extend(getDefaultOptions$1(), options);
+  this.init();
+  return this;
 }
 
-Pinch.prototype.init = function (options) {
+Pinch.prototype.init = function () {
   var pinch = this;
-
-  pinch.options = extend(getDefaultOptions$1(), options);
-
   initRender(pinch);
   initEvent(pinch);
   initActions(pinch);
@@ -1506,9 +1667,6 @@ addActions(Pinch);
 // 添加验证相关的原型方法
 addValidation(Pinch);
 
-/**
- * 获取裁剪默认选项
- */
 function getDefaultOptions() {
   return {
     // 允许图片的最大宽度

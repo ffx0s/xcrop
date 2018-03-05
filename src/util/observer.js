@@ -14,6 +14,7 @@ Observer.prototype = {
       }
       fn && (ob.events[signal].push(fn))
     })
+    return ob
   },
   emit: function (signals) {
     const ob = this

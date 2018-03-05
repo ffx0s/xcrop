@@ -1,4 +1,4 @@
-import { extend, noop } from '../util/shared'
+import { extend } from '../util/shared'
 import { initRender, addRender } from './render'
 import { initEvent, addEvent } from './event'
 import { initActions, addActions } from './actions'
@@ -7,16 +7,14 @@ import addGlobal from './global'
 
 function getDefaultOptions () {
   return {
-    target: null,
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+    // 允许最大的图片宽高
     maxTargetWidth: 2000,
     maxTargetHeight: 2000,
-    el: null,
-    // canvas宽度
-    width: 800,
-    // canvas高度
-    height: 800,
-    // 最大缩放比例，最小缩放比例默认为 canvas 与图片大小计算的比例
+    // 最大/最小缩放比例
     maxScale: 2,
+    minScale: 1,
     touchTarget: null,
     // canvas位于容器的偏移量
     offset: {
@@ -25,23 +23,21 @@ function getDefaultOptions () {
       top: 0,
       bottom: 0
     },
-    loaded: noop
+    // 是否需要图片遮罩层，防止微信保存图片菜单弹起
+    imageMask: true
   }
 }
 
-function Pinch (el, options) {
-  options.el = el
-  this.init(options)
-  this.render()
-  this.bindEvent()
-  this.load(options.target)
+function Pinch (el, options = {}) {
+  const pinch = this
+  options.el = typeof el === 'string' ? document.querySelector(el) : el
+  pinch.options = extend(getDefaultOptions(), options)
+  this.init()
+  return this
 }
 
-Pinch.prototype.init = function (options) {
+Pinch.prototype.init = function () {
   const pinch = this
-
-  pinch.options = extend(getDefaultOptions(), options)
-
   initRender(pinch)
   initEvent(pinch)
   initActions(pinch)

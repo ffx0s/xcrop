@@ -1,6 +1,47 @@
+import { setStyle } from '../util/element'
+
 export function initRender (pinch) {
-  pinch.canvas = createCanvas(pinch.options.width, pinch.options.height)
-  pinch.context = pinch.canvas.getContext('2d')
+  const { width, height } = pinch.options
+  const wrap = document.createElement('div')
+  const canvas = document.createElement('div')
+  const image = new window.Image()
+
+  setStyle(wrap, {
+    position: 'absolute',
+    width: width + 'px',
+    height: height + 'px',
+    overflow: 'hidden'
+  })
+  setStyle(canvas, {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    right: 0,
+    transformOrigin: 'left top',
+    touchAction: 'none'
+  })
+  setStyle(image, {
+    position: 'absolute',
+    width: '100%'
+  })
+  canvas.appendChild(image)
+  wrap.appendChild(canvas)
+  // 是否需要图片遮罩层，防止微信保存图片菜单弹起
+  if (pinch.options.imageMask) {
+    const imageMask = document.createElement('div')
+    setStyle(imageMask, {
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+      height: '100%'
+    })
+    canvas.appendChild(imageMask)
+  }
+  pinch.wrap = wrap
+  pinch.canvas = canvas
+  pinch.image = image
+  pinch.isRender = false
 }
 
 export function addRender (Pinch) {
@@ -8,27 +49,13 @@ export function addRender (Pinch) {
 
   proto.render = function () {
     const pinch = this
-    const options = pinch.options
-    options.el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
-    options.el.appendChild(pinch.canvas)
-    // 获取canvas位于html里实际的大小
-    pinch.rect = pinch.canvas.getBoundingClientRect()
+    if (pinch.isRender) return
+    pinch.options.el.appendChild(pinch.wrap)
+    // 获取容器大小
+    pinch.rect = pinch.wrap.getBoundingClientRect()
     // 利用canvas的宽度和实际的宽度作为它的大小比例
-    pinch.canvasScale = options.width / pinch.rect.width
+    pinch.canvasScale = pinch.options.width / pinch.rect.width
+    pinch.isRender = true
+    pinch.bindEvent()
   }
-}
-
-/**
- * 创建一个宽高为100%的画布
- * @param {Number} width 画布宽度
- * @param {Number} height 画布高度
- */
-function createCanvas (width, height) {
-  const canvas = document.createElement('canvas')
-
-  canvas.width = width
-  canvas.height = height
-  canvas.style.cssText = 'width:100%;height:100%;'
-
-  return canvas
 }
