@@ -109,7 +109,10 @@ document.getElementById('file-input').onchange = onChange
 |eventName|true|String|-|事件名|
 |fn|true|Function|-|事件函数|  
 
-返回自身，可以链式调用。  
+返回自身，可以链式调用，已存在的监听事件有：  
+this.on('loaded', fn) - 图片加载完成时触发  
+this.on('cancle', fn) - 取消事件  
+this.on('confirm', fn) - 确认事件
 
 ### emit  
 > 分发自定义事件  
