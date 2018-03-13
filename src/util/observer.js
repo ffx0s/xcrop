@@ -1,39 +1,45 @@
 const slice = Array.prototype.slice
 
-function Observer () {
-  this.events = {}
-}
+export default class Observer {
+  constructor () {
+    this.events = {}
+  }
 
-Observer.prototype = {
-  on: function (signals, fn) {
+  on (eventName, fn) {
     const ob = this
 
-    signals.split(' ').forEach(signal => {
-      if (!ob.events[signal]) {
-        ob.events[signal] = []
+    eventName.split(' ').forEach(name => {
+      if (!ob.events[name]) {
+        ob.events[name] = []
       }
-      fn && (ob.events[signal].push(fn))
+      fn && (ob.events[name].push(fn))
     })
-  },
-  emit: function (signals) {
+    return ob
+  }
+
+  emit (eventName) {
     const ob = this
     const args = slice.call(arguments, 1)
 
-    signals = signals.split(' ').forEach(signal => {
-      const events = ob.events[signal]
+    eventName = eventName.split(' ').forEach(name => {
+      const events = ob.events[name]
+
       if (events) {
         events.forEach(fn => fn.apply(ob, args))
       }
     })
-  },
-  off: function (signal, fn) {
-    const ob = this
+  }
 
-    let events = ob.events[signal]
+  off (eventName, fn) {
+    const ob = this
+    const events = ob.events[eventName]
+
     if (events) {
-      events.forEach(fn => events.splice(events.indexOf(fn), 1))
+      const index = events.indexOf(fn)
+
+      if (index !== -1) {
+        events.forEach(fn => events.splice(index, 1))
+      }
     }
   }
 }
-
-export default Observer

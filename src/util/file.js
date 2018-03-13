@@ -1,10 +1,14 @@
-export const URL = window.URL && window.URL.createObjectURL ? window.URL : window.webkitURL && window.webkitURL.createObjectURL ? window.webkitURL : null
+export const URL = win.URL && win.URL.createObjectURL ? win.URL : win.webkitURL && win.webkitURL.createObjectURL ? win.webkitURL : null
 
+/**
+ * base64 转 blob
+ * @param {String} dataURI base64字符串
+ */
 export function dataURItoBlob (dataURI) {
   let byteString
 
   if (dataURI.split(',')[0].indexOf('base64') >= 0) {
-    byteString = window.atob(dataURI.split(',')[1])
+    byteString = win.atob(dataURI.split(',')[1])
   } else {
     byteString = unescape(dataURI.split(',')[1])
   }
@@ -19,23 +23,23 @@ export function dataURItoBlob (dataURI) {
 
   let blob
   try {
-    blob = new window.Blob([ab], {
+    blob = new win.Blob([ab], {
       type: mimeString
     })
   } catch (e) {
     // TypeError old chrome and FF
-    window.BlobBuilder = window.BlobBuilder ||
-                   window.WebKitBlobBuilder ||
-                      window.MozBlobBuilder ||
-                      window.MSBlobBuilder
+    win.BlobBuilder = win.BlobBuilder ||
+                   win.WebKitBlobBuilder ||
+                      win.MozBlobBuilder ||
+                      win.MSBlobBuilder
 
-    if (e.name === 'TypeError' && window.BlobBuilder) {
-      let bb = new window.BlobBuilder()
+    if (e.name === 'TypeError' && win.BlobBuilder) {
+      let bb = new win.BlobBuilder()
       bb.append(ia.buffer)
       blob = bb.getBlob(mimeString)
     } else if (e.name === 'InvalidStateError') {
       // InvalidStateError (tested on FF13 WinXP)
-      blob = new window.Blob([ab], {
+      blob = new win.Blob([ab], {
         type: mimeString
       })
     } else {
@@ -48,7 +52,7 @@ export function dataURItoBlob (dataURI) {
 export const isObjectURL = url => /^blob:/i.test(url)
 
 export function objectURLToBlob (url, callback) {
-  const http = new window.XMLHttpRequest()
+  const http = new win.XMLHttpRequest()
   http.open('GET', url, true)
   http.responseType = 'blob'
   http.onload = function (e) {
@@ -59,17 +63,26 @@ export function objectURLToBlob (url, callback) {
   http.send()
 }
 
-export function httpURLToArrayBuffer (url, callback) {
-  let http = new window.XMLHttpRequest()
+export function httpURLToArrayBuffer (url, callback, errorCallback) {
+  let http = new win.XMLHttpRequest()
   http.onload = function () {
     if (this.status === 200 || this.status === 0) {
       callback(http.response)
     } else {
-      throw new Error('Could not load image')
+      errorCallback && errorCallback('Could not load image：' + url)
     }
     http = null
   }
   http.open('GET', url, true)
   http.responseType = 'arraybuffer'
   http.send(null)
+}
+
+export function fileToArrayBuffer (file, callback, errorCallback) {
+  const fileReader = new win.FileReader()
+
+  fileReader.onload = e => { callback(e.target.result) }
+  fileReader.onerror = errorCallback || function (error) { console.error('fileToArrayBuffer error: ', error) }
+
+  fileReader.readAsArrayBuffer(file)
 }

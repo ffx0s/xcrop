@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <br />
+  <br />
+  <input type="file" id="file-input" accept="image/*">
+  <button ontouchstart="destroy()">销毁</button>
+  <script src="../dist/crop.js"></script>
+  <script>
+    window.onload = function () {
+      var crop = new Crop()
+
+      crop.on('cancle', function (crop) {
+        crop.hide()
+      })
+      crop.on('confirm', function (crop) {
+        createImage(crop.get({ width: 300 }))
+        createImage(crop.get())
+        crop.hide()
+      })
+
+      document.getElementById('file-input').onchange = onChange
+
+      function onChange(e) {
+        var file = e.target.files[0]
+        if (!file) return false
+        crop.load(file)
+        this.value = ''
+      }
+
+      function createImage(src) {
+        var img = new Image()
+        img.onload = function () {
+          var div = document.createElement('div')
+          div.innerHTML = `<h2>${img.width}x${img.height}: </h2><img src="${src}" style="width: 300px;">`
+          document.body.appendChild(div)
+        }
+        img.src = src
+      }
+
+      function destroy() {
+        if (crop) {
+          crop.destroy()
+          // 移除引用关系
+          crop = null
+        }
+      }
+
+      window.crop = crop
+    }
+
+  </script>
+
+</html>

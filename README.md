@@ -2,18 +2,13 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 原生javascript、canvas实现的移动端裁剪插件，无任何依赖，体积小，接近原生的体验效果，可处理较大的图片.
+> 原生javascript移动端裁剪插件
 
 ## 例子
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
 
-简单使用：  
 
-<img src="https://o818xvhxo.qnssl.com/o_1c6p8h25krv6v2eqo9aao1b4p9.png" />  
-
-带显示隐藏过渡动画：  
-
-<img src="https://o818xvhxo.qnssl.com/o_1c6p8l5prv8u1c5o14o6lmj163h.png" />  
+<img src="https://o818xvhxo.qnssl.com/o_1c8fr886nekl1i4u7k6ap41hdu9.png" />  
 
 ## 安装
 
@@ -28,19 +23,17 @@ Install with [npm](https://www.npmjs.com/package/xcrop): `npm install xcrop --sa
 ``` js
 import Crop from 'xcrop'
 
-const options = {
-  loaded: function () {
-    this.show()
-  },
-  cancle: function () {
-    this.hide()
-  },
-  confirm: function () {
-    console.log(this.get({width: 600, format: 'url'}).url)
-    this.hide()
-  }
-}
+const options = {}
 const crop = new Crop(options)
+
+crop.on('cancle', crop => {
+  crop.hide()
+})
+crop.on('confirm', crop => {
+  const canvas = crop.get({ format: 'canvas' })
+  document.body.appendChild(canvas)
+  crop.hide()
+})
 
 function onChange (e) {
   var file = e.target.files[0]
@@ -52,180 +45,120 @@ function onChange (e) {
 document.getElementById('file-input').onchange = onChange
 ```
 
-## Options
+## Options  
+**Type:** _Object_  
+> 实例化选项：new Crop(options)
 
-### width
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|el|false|Element|body|插入节点|
+|viewWidth|false|Number|document.documentElement.clientWidth|容器宽度|
+|viewHeight|false|Number|document.documentElement.clientHeight|容器高度|
+|maxScale|false|Number|2|允许缩放的最大比例|
+|confirmText|false|String|确认|确认按钮文字|
+|cancleText|false|String|取消|取消按钮文字|
+|showClass|false|String|crop-slide-left|动画类名：crop-slide-*, *: left/right/top/bottom|
+|hideClass|false|String|crop-slide-bottom|动画类名，同上|
 
-**Type:** _Number_
 
-**Value:** `300`
-
-``` js
-width: 300
-```
-
-裁剪框宽度.
-
-### height
-
-**Type:** _Number_ 
-
-**Value:** `300`
-
-``` js
-height: 300
-```
-
-裁剪框高度.
-
-### maxScale
-
-**Type:** _Number_
-
-``` js
-maxScale: 2
-```
-
-可以缩放的最大比例, 默认值是2倍
-
-### created
-
-**Type:** _Function_
-
-``` js
-created: function () {}
-```
-
-节点创建完成，等待渲染到html页面的回调函数
-
-### mounted
-
-**Type:** _Function_
-
-``` js
-mounted: function () {}
-```
-
-渲染到html页面完成的回调函数
-
-### loaded
-
-**Type:** _Function_
-
-``` js
-loaded: function () {}
-```
-
-图片加载完成的回调函数
-
-## 实例方法
+## 实例方法  
   
-### load
-**Type:** _Function_
+### load(target)  
+> 加载图片  
 
-``` js
-/**
- * 加载裁剪图片.
- * @param {(string|file|element)} target - 图片目标，可以是二进制、base64、imageElement、objectUrl或者canvas.
- */
-this.load(target)
-```  
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|target|true|String/File/Element|-|图片目标，可以是flile/base64/imageElement/objectUrl/canvas|  
 
-### get
-**Type:** _Function_
+### get(options)  
+> 获取裁剪图片  
 
-``` js
-/**
- * 裁剪函数，根据裁剪参数，输出裁剪后的图片
- * @param {object} options
- * @property {number} options.width - 裁剪宽度，默认值为裁剪框的width
- * @property {number} options.height - 裁剪高度，默认值为裁剪框的height
- * @property {string} options.type - 图片类型，默认'image/jpeg'
- * @property {number} options.quality - 图片质量，默认0.85，取值区间0~1
- * @property {string} options.format - 裁剪图片的格式，影响最终返回的结果，默认 'canvas'， 可选：canvas、src、blob、url
- * @return {object} 裁剪后的图片数据
- */
- 
-var options = {
- width: 300, 
- height: 300, 
- type: 'image/jpeg', 
- quality: 0.85
-}
-this.get(options)
+|options 属性|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|width|false|Number|默认宽度基于原图比例|裁剪宽度|
+|height|false|Number|默认高度基于原图比例|裁剪高度|
+|type|false|String|image/jpeg|图片格式|
+|format|false|String|base64|输出格式，可选：canvas/objectUrl/base64/file|  
+|quality|false|Number|0.85|图片质量，对应canvas toDataURL方法|
 
-返回结果为以下对象中的一个：
-{
-  // 文件对象
-  blob: Blob,
-  // canvas element
-  canvas: canvas,
-  // base64
-  src: 'data:image/jpeg;base64,/xxxx',
-  // objectUrl
-  url: 'blob:http://localhost/24dfe01f-d581-4618-b595-f179cadc4e2f'
-}
-```  
+|返回值|类型|说明|
+|:-----|:------|:-----------------------------|
+|result|String/Element/File|返回结果，根据输入选项返回对应结果|  
 
-### moveTo
-**Type:** _Function_
 
-``` js
-/**
- * 图片移动函数，以裁剪组件的左上角为原点，而不是以裁剪区域为原点，移动到x，y坐标.
- * @param {number} x - x坐标.
- * @param {number} y - y坐标.
- */
-this.moveTo(x, y)
-```
+### show / hide  
+> 显示/隐藏组件  
 
-### show/hide
-**Type:** _Function_
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|transition|false|Boolean|true|是否需要过渡动画|
 
-``` js
-// 显示组件
-this.show()
-// 隐藏组件
-this.hide()
-```
 
-### destroy
-**Type:** _Function_
+### setBorder
+> 设置裁剪框位置大小：setBorder(border)  
 
-``` js
-// 销毁组件
-this.destroy()
-```
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|border|true|Object|-|裁剪框大小：{x, y, width, height}|  
+
+### on
+> 监听自定义事件  
+
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|eventName|true|String|-|事件名|
+|fn|true|Function|-|事件函数|  
+
+返回自身，可以链式调用。  
+
+### emit  
+> 分发自定义事件  
+
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|eventName|true|String|-|事件名|  
+|arguments|false|*|-|携带的参数|  
+
+### off  
+> 移除自定义事件  
+
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|eventName|true|String|-|事件名|  
+|fn|true|Function|-|移除的函数|  
+
+### this.canvas.moveTo  
+> 移动图片到指定位置  
+
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|x|true|Number|-|x坐标|  
+|y|true|Number|-|y坐标|
+
+### this.canvas.sacleTo  
+> 缩放图片  
+
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|point|true|Object|-|以点为中心缩放：{x:0, y:0}|  
+|scale|true|Number|-|缩放比例|  
+
+
+### destroy  
+> 销毁组件  
+
 
 ## 静态方法
 
-### loadImage
-**Type:** _Function_
+### Crop.imageToCanvas  
+> 图片转canvas  
 
-``` js
-/**
- * 图片加载函数，会自动更正图片的方向、图片像素过大等问题.
- * @param {(string|file|element)} target - 目标，值可以是二进制、base64、imageElement、objectUrl或者canvas.
- * @param {function} callback - 加载完成后的回调函数，function callback(canvas) {...}.
- */
-Crop.loadImage(target, callback)
-```
+|参数|必选|类型|默认|说明|
+|:-----|:-------|:-----|:-----|-----------------------------|
+|target|true|string/file/element|-|图片|  
+|callback|true|Function|-|成功回调，回调函数中第一个参数为canvas|
+|options|false|Object|{orientation: true, errorCallback: function () {}}|可选项，orientation：是否需要更正图片方向，errorCallback： 出错回调|  
 
-## 其他
-
-### 如何监听触摸的事件：
-``` js
-const crop = new Crop({
-  mounted: function () {
-    const pinch = this.pinch
-    ;['dragstart', 'dragmove', 'dragend', 'pinchstart', 'pinchmove', 'pinchend'].forEach(eventName => {
-      pinch.on(eventName, function (e) {
-        console.log(eventName)
-      })
-    })
-  }
-})
-```
 
 ## Browser support
 

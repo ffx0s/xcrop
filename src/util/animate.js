@@ -1,19 +1,15 @@
+import { extendDeep } from './shared'
 import Tween from './tween'
 
-// requestAnimationFrame 兼容处理
 const requestAnimationFrame =
-  window.requestAnimationFrame ||
-  window.webkitRequestAnimationFrame ||
-  window.mozRequestAnimationFrame ||
-  window.msRequestAnimationFrame ||
+  win.requestAnimationFrame ||
+  win.webkitRequestAnimationFrame ||
   function (callback) {
-    return window.setTimeout(callback, 1000 / 60)
+    return win.setTimeout(callback, 1000 / 60)
   }
 
-// cancelAnimationFrame 兼容处理
 const cancelAnimationFrame =
-  window.cancelAnimationFrame ||
-  window.mozCancelAnimationFrame ||
+  win.cancelAnimationFrame ||
   function (id) {
     clearTimeout(id)
   }
@@ -24,6 +20,12 @@ const cancelAnimationFrame =
  */
 const now = () => new Date().getTime()
 
+// 动画默认选项
+const defaultsOptions = {
+  time: 500,
+  type: 'easeOutQuad'
+}
+
 /**
  * 动画执行函数，仅在opiotns.running函数返回数值，不做具体元素的动画操作
  * @param {Object} options 选项
@@ -33,9 +35,10 @@ const now = () => new Date().getTime()
  * @property {Function} options.running - options.targets数值变化过程会执行这个函数
  * @property {Function} options.end 结束后的回调函数
  */
-export default function (options) {
+export default function (_options) {
   let timer = null
-  let { time = 500, type = 'easeOutQuad', targets, running, end } = options
+  const options = extendDeep({}, defaultsOptions, _options)
+  const { time, type, targets, running, end } = options
   const startTime = now()
 
   function step () {

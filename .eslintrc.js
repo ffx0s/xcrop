@@ -1,7 +1,12 @@
 module.exports = {
-    "extends": "standard",
-    "plugins": [
-        "standard",
-        "promise"
-    ]
-};
+  "extends": "standard",
+  "parser": "babel-eslint",
+  "plugins": [
+    "standard",
+    "promise"
+  ],
+  "globals": {
+    "win": true,
+    "Math": true
+  }
+}
