@@ -8,7 +8,7 @@
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
 
 
-<img src="https://o818xvhxo.qnssl.com/o_1c8fr886nekl1i4u7k6ap41hdu9.png" />  
+<img src="https://o818xvhxo.qnssl.com/o_1c8fs4vpu8sk1us8uisfge1n769.png" />  
 
 ## 安装
 
