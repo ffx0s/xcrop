@@ -119,7 +119,7 @@ document.getElementById('file-input').onchange = onChange
 |eventName|true|String|-|事件名|  
 |arguments|false|*|-|携带的参数|  
 
-### off  
+### off  
 > 移除自定义事件  
 
 |参数|必选|类型|默认|说明|
