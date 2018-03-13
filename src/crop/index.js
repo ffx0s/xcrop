@@ -56,7 +56,7 @@ class Crop {
 
   init () {
     this.initElement()
-    this.initPinch()
+    this.initCanvas()
     this.initEvent()
   }
 
@@ -84,7 +84,7 @@ class Crop {
     crop.setBorder(crop.border)
   }
 
-  initPinch () {
+  initCanvas () {
     const crop = this
     const { canvasRatio, maxScale, viewWidth, viewHeight } = crop.options
     const canvasOptions = {
