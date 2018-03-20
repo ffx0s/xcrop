@@ -1,0 +1,7 @@
+node_modules
+npm-debug.log
+examples/test.html
+.eslintrc.js
+.babelrc
+rollup.config.js
+yarn.lock
