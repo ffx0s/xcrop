@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 原生javascript移动端裁剪插件
+> 原生 JavaScript & Vue 2.0 移动端裁剪插件
 
 ## 例子
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
@@ -14,7 +14,7 @@
 
 Install with [npm](https://www.npmjs.com/package/xcrop): `npm install xcrop --save`
 
-## 使用
+## 直接使用
 
 ```html
 <input type="file" id="file-input" accept="image/*">
@@ -43,6 +43,49 @@ function onChange (e) {
 }
 
 document.getElementById('file-input').onchange = onChange
+```  
+
+## 基于 Vue 2.0 使用  
+``` html
+<Crop
+  :file="file"
+  :options="options"
+  @on-cancle="onCancle"
+  @on-confirm="onConfirm"
+/>
+<input type="file" @change="onChange($event)" accept="image/*" :value="''">
+<img v-if="output" :src="output" width="100%">
+```  
+
+``` js
+import Crop from 'xcrop/src/components/VueCrop'
+
+export default {
+  data () {
+    return {
+      file: null,
+      options: {},
+      output: ''
+    }
+  },
+  methods: {
+    onChange (e) {
+      this.file = e.target.files[0]
+    },
+    onCancle (crop) {
+      this.file = null
+      crop.hide()
+    },
+    onConfirm (crop) {
+      this.output = crop.get()
+      this.file = null
+      crop.hide()
+    }
+  },
+  components: {
+    Crop
+  }
+}
 ```
 
 ## Options  
@@ -102,17 +145,27 @@ document.getElementById('file-input').onchange = onChange
 |border|true|Object|-|裁剪框大小：{x, y, width, height}|  
 
 ### on
-> 监听自定义事件  
+> 监听自定义事件，函数返回自身，可以链式调用，  
 
 |参数|必选|类型|默认|说明|
 |:-----|:-------|:-----|:-----|-----------------------------|
 |eventName|true|String|-|事件名|
 |fn|true|Function|-|事件函数|  
+|once|false|Boolean|undefined|此事件是否只执行一次|  
 
-返回自身，可以链式调用，已存在的监听事件有：  
-this.on('loaded', fn) - 图片加载完成时触发  
-this.on('cancle', fn) - 取消事件  
-this.on('confirm', fn) - 确认事件
+可监听的事件有：  
+|事件名|说明|
+|:-----|-----------------------------|  
+|loaded|图片加载完成|  
+|error|图片加载失败|  
+|cancle|按钮取消|  
+|confirm|按钮确认|  
+|dragstart|单指按下|  
+|dragmove|单指拖动|  
+|dragend|单指拖动结束|  
+|pinchstart|双指按下  
+|pinchmove|双指拖动|  
+|pinchend|双指拖动结束|  
 
 ### emit  
 > 分发自定义事件  
