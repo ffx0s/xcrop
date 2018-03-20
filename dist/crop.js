@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.0.3
+   * @name xcrop v1.1.0
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -1332,14 +1332,6 @@ function resetSize(image, options) {
 }
 
 /**
- * 渲染样式
- * @param {String} cssText css样式
- * @param {Element} elem css插入节点
- * @returns {Element} 返回 style element
- */
-
-
-/**
  * 获取 HTML 节点
  * @param {String} selector 选择器
  * @returns {Element} HTML节点
@@ -1744,63 +1736,86 @@ var possibleConstructorReturn = function (self, call) {
 
 var slice$1 = Array.prototype.slice;
 
-var Observer = function () {
-  function Observer() {
-    classCallCheck(this, Observer);
+var EventEmitter = function () {
+  function EventEmitter() {
+    classCallCheck(this, EventEmitter);
 
     this.events = {};
   }
 
-  createClass(Observer, [{
+  createClass(EventEmitter, [{
     key: 'on',
-    value: function on(eventName, fn) {
-      var ob = this;
+    value: function on(eventName, fn, once) {
+      var that = this;
 
       eventName.split(' ').forEach(function (name) {
-        if (!ob.events[name]) {
-          ob.events[name] = [];
+        if (!that.events[name]) {
+          that.events[name] = [];
         }
-        fn && ob.events[name].push(fn);
+        fn && that.events[name].push({ fn: fn, once: once });
       });
-      return ob;
+      return that;
     }
   }, {
     key: 'emit',
     value: function emit(eventName) {
-      var ob = this;
+      var that = this;
       var args = slice$1.call(arguments, 1);
 
       eventName = eventName.split(' ').forEach(function (name) {
-        var events = ob.events[name];
+        var events = that.events[name];
 
         if (events) {
-          events.forEach(function (fn) {
-            return fn.apply(ob, args);
-          });
+          var length = events.length;
+
+          for (var i = 0; i < length; i++) {
+            var current = events[i];
+
+            if (current) {
+              events[i].fn.apply(that, args);
+
+              if (events[i].once) {
+                events.splice(i--, 1);
+              }
+            }
+          }
         }
       });
     }
   }, {
     key: 'off',
     value: function off(eventName, fn) {
-      var ob = this;
-      var events = ob.events[eventName];
+      var that = this;
+      var events = that.events[eventName];
 
       if (events) {
-        var index = events.indexOf(fn);
-
-        if (index !== -1) {
-          events.forEach(function (fn) {
-            return events.splice(index, 1);
-          });
+        // 没有回调函数则移除所有该事件下的函数
+        if (!fn) {
+          that.events[eventName] = [];
+          return;
         }
+
+        // 有事件名和函数
+        var length = events.length;
+
+        for (var i = 0; i < length; i++) {
+          if (events[i] && events[i].fn === fn) {
+            events.splice(i, 1);
+            break;
+          }
+        }
+        return;
+      }
+
+      // 没有事件名则移除所有监听函数
+      if (!eventName) {
+        that.events = {};
       }
     }
   }]);
-  return Observer;
+  return EventEmitter;
 }();
 
-// 默认选项
 var defaults$1 = {
   el: document.body,
   // canvas宽度
@@ -1820,8 +1835,8 @@ var defaults$1 = {
   }
 };
 
-var Canvas = function (_Observer) {
-  inherits(Canvas, _Observer);
+var Canvas = function (_EventEmitter) {
+  inherits(Canvas, _EventEmitter);
 
   function Canvas() {
     var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -1851,7 +1866,7 @@ var Canvas = function (_Observer) {
     }
   }]);
   return Canvas;
-}(Observer);
+}(EventEmitter);
 
 // 添加原型方法
 
@@ -1979,7 +1994,7 @@ var Crop = function () {
     key: 'init',
     value: function init() {
       this.initElement();
-      this.initPinch();
+      this.initCanvas();
       this.initEvent();
     }
   }, {
@@ -2012,8 +2027,8 @@ var Crop = function () {
       crop.setBorder(crop.border);
     }
   }, {
-    key: 'initPinch',
-    value: function initPinch() {
+    key: 'initCanvas',
+    value: function initCanvas() {
       var crop = this;
       var _crop$options2 = crop.options,
           canvasRatio = _crop$options2.canvasRatio,
@@ -2037,13 +2052,9 @@ var Crop = function () {
     key: 'initEvent',
     value: function initEvent() {
       var crop = this;
-      var once = function once() {
-        crop.render();
-        crop.canvas.off('loaded', once);
-      };
 
       crop.canvas.on('loaded', crop.show.bind(crop));
-      crop.canvas.on('loaded', once);
+      crop.canvas.on('loaded', crop.render.bind(crop), true);
 
       crop.elements.container.addEventListener('touchstart', crop.touchstart = crop.touchstart.bind(crop));
     }
@@ -2125,7 +2136,7 @@ var Crop = function () {
       if (format[options.format]) {
         return format[options.format]();
       } else {
-        throw new Error('Format param error, Try: base64|file|objectUrl|canvas');
+        throw new Error('Undefined format: ' + options.format + ', Try: base64|file|objectUrl|canvas');
       }
     }
 
