@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.0
+   * @name xcrop v1.1.1
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -1332,6 +1332,14 @@ function resetSize(image, options) {
 }
 
 /**
+ * 渲染样式
+ * @param {String} cssText css样式
+ * @param {Element} elem css插入节点
+ * @returns {Element} 返回 style element
+ */
+
+
+/**
  * 获取 HTML 节点
  * @param {String} selector 选择器
  * @returns {Element} HTML节点
@@ -1816,6 +1824,7 @@ var EventEmitter = function () {
   return EventEmitter;
 }();
 
+// 默认选项
 var defaults$1 = {
   el: document.body,
   // canvas宽度
