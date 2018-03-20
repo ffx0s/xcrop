@@ -102,13 +102,9 @@ class Crop {
 
   initEvent () {
     const crop = this
-    const once = () => {
-      crop.render()
-      crop.canvas.off('loaded', once)
-    }
 
     crop.canvas.on('loaded', crop.show.bind(crop))
-    crop.canvas.on('loaded', once)
+    crop.canvas.on('loaded', crop.render.bind(crop), true)
 
     crop.elements.container.addEventListener('touchstart', (crop.touchstart = crop.touchstart.bind(crop)))
   }
@@ -191,7 +187,7 @@ class Crop {
     if (format[options.format]) {
       return format[options.format]()
     } else {
-      throw new Error(`Format param error, Try: base64|file|objectUrl|canvas`)
+      throw new Error(`Undefined format: ${options.format}, Try: base64|file|objectUrl|canvas`)
     }
   }
 

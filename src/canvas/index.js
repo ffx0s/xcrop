@@ -7,7 +7,7 @@ import validation from './validation'
 
 import { extendDeep, objectAssign } from '../util/shared'
 import { $ } from '../util/element'
-import Observer from '../util/observer'
+import EventEmitter from '../util/eventEmitter'
 
 // 默认选项
 const defaults = {
@@ -29,7 +29,7 @@ const defaults = {
   }
 }
 
-class Canvas extends Observer {
+class Canvas extends EventEmitter {
   constructor (options = {}) {
     super()
 
