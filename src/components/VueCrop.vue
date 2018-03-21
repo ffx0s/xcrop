@@ -37,22 +37,21 @@ export default {
   },
   mounted () {
     this.init()
+    this.addEvents()
   },
   methods: {
     init () {
       this.options.el = this.$el
-      this._crop = new Crop(this.options)
-
-      this.addEvents()
+      this[0] = new Crop(this.options)
     },
     load (file) {
-      if (file && this._crop) {
-        this._crop.load(file)
+      if (file && this[0]) {
+        this[0].load(file)
       }
     },
     addEvents () {
       const vm = this
-      const crop = vm._crop
+      const crop = vm[0]
 
       EVENTS.forEach(eventName => {
         crop.on(eventName, function () {
@@ -62,8 +61,8 @@ export default {
     }
   },
   beforeDestroy () {
-    this._crop && this._crop.destroy()
-    this._crop = null
+    this[0] && this[0].destroy()
+    this[0] = null
   }
 }
 </script>

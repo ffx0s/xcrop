@@ -1,18 +1,16 @@
 <template>
   <div id="app">
     <input type="file" @change="onChange($event)" accept="image/*" :value="''">
-    <button @click="isDestroy = true">销毁</button>
 
     <img v-if="output" :src="output" width="100%">
 
-    <template v-if="!isDestroy">
-      <Crop
-        :file="file"
-        :options="options"
-        @on-cancle="onCancle"
-        @on-confirm="onConfirm"
-      />
-    </template>
+    <Crop
+      :file="file"
+      :options="options"
+      @on-cancle="onCancle"
+      @on-confirm="onConfirm"
+      @on-error="onError"
+    />
   </div>
 </template>
 
@@ -22,7 +20,6 @@ import Crop from 'xcrop/src/components/VueCrop'
 export default {
   data () {
     return {
-      isDestroy: false,
       file: null,
       options: {},
       output: ''
@@ -40,6 +37,9 @@ export default {
       this.output = crop.get()
       this.file = null
       crop.hide()
+    },
+    onError (error) {
+      console.log(error)
     }
   },
   components: {
