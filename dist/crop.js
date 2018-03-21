@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.1
+   * @name xcrop v1.1.3
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -40,7 +40,7 @@ function styleInject(css, ref) {
   }
 }
 
-var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:1;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s}.crop-container.crop-hide{display:none}.crop-container.crop-slide-left{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-container.crop-slide-right{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-container.crop-slide-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-container.crop-slide-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-box-sizing:content-box;box-sizing:content-box}.crop-mask:before{position:absolute;left:0;top:0;float:left;content:\"\";width:200%;height:200%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-transform:scale(.5);transform:scale(.5);-webkit-transform-origin:0 0;transform-origin:0 0}.crop-handle{position:absolute;bottom:0;left:0;width:100%;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0)}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
+var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:1;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s}.crop-container.crop-hide{display:none}.crop-container.crop-slide-left{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-container.crop-slide-right{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-container.crop-slide-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-container.crop-slide-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-box-sizing:content-box;box-sizing:content-box}.crop-mask:before{position:absolute;left:0;top:0;float:left;content:\"\";width:200%;height:200%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-transform:scale(.5);transform:scale(.5);-webkit-transform-origin:0 0;transform-origin:0 0}.crop-handle{position:absolute;bottom:0;left:0;width:100%;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0)}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
 styleInject(css);
 
 function template(options) {
@@ -53,6 +53,8 @@ function template(options) {
 
 var VIEW_WIDTH = document.documentElement.clientWidth;
 var VIEW_HEIGHT = document.documentElement.clientHeight;
+
+var BORDER_SIZE = Math.min(VIEW_WIDTH, VIEW_HEIGHT) * 0.8;
 
 var CROP_HIDE = 'crop-hide';
 
@@ -593,6 +595,112 @@ var defaultsOptions = {
   };
 };
 
+/**
+ * 渲染样式
+ * @param {String} cssText css样式
+ * @param {Element} elem css插入节点
+ * @returns {Element} 返回 style element
+ */
+
+
+/**
+ * 获取 HTML 节点
+ * @param {String} selector 选择器
+ * @returns {Element} HTML节点
+ */
+function $(selector) {
+  return isString(selector) ? document.querySelector(selector) : selector;
+}
+
+/**
+ * 判断节点是否存在页面上
+ * @param {Element} node 节点
+ */
+function isInPage(node) {
+  return document.body.contains(node);
+}
+
+/**
+ * 设置CSS样式
+ * @param {Object} el 节点
+ * @param {Object} css 样式
+ */
+function setStyle(el, css) {
+  for (var prop in css) {
+    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
+
+    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
+      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
+    } else {
+      el.style[prop] = value;
+    }
+  }
+}
+
+var notwhite = /\S+/g;
+
+/**
+ * 设置 className
+ * @param {Element} el 节点
+ * @param {Object} options 选项
+ */
+var setClass = function () {
+  /**
+   * 添加 className
+   * @param {String} curClassName 当前类
+   * @param {String} className 新类
+   */
+  function add(curClassName, className) {
+    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
+
+    return curClassName === '' ? className : curClassName + ' ' + className;
+  }
+
+  /**
+   * 移除 className
+   * @param {String} curClassName 当前类
+   * @param {String} className 新类
+   */
+  function remove(curClassName, className) {
+    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
+
+    classNameArr.forEach(function (name) {
+      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
+    });
+
+    return curClassName.trim();
+  }
+
+  return function (el, options) {
+    var className = el.className;
+    if (options.remove) {
+      className = remove(className, options.remove);
+    }
+    if (options.add) {
+      className = add(className, options.add);
+    }
+    el.className = className;
+  };
+}();
+
+// 是否支持 passive 属性
+var supportsPassive = false;
+
+try {
+  var opts = Object.defineProperty({}, 'passive', {
+    get: function get() {
+      supportsPassive = true;
+    }
+  });
+  win.addEventListener('testPassive', null, opts);
+  win.removeEventListener('testPassive', null, opts);
+} catch (e) {}
+
+// 添加事件
+function addListener(element, type, fn, options) {
+  element.addEventListener(type, fn, supportsPassive ? options || { passive: true } : false);
+}
+
 function initEvent$1(canvas) {
   canvas.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
   // 最后一次事件操作的参数
@@ -613,7 +721,7 @@ var events = {
     var element = that.options.touchTarget || that.canvas;
 
     that.eventList.forEach(function (eventName) {
-      element.addEventListener(eventName, that[eventName] = that[eventName].bind(that));
+      addListener(element, eventName, that[eventName] = that[eventName].bind(that), { passive: false });
     });
   },
   removeEvent: function removeEvent() {
@@ -666,6 +774,8 @@ var events = {
     }
   },
   touchmove: function touchmove(e) {
+    e.preventDefault();
+
     var that = this;
     var touches = e.touches;
 
@@ -1331,94 +1441,6 @@ function resetSize(image, options) {
   return { width: width, height: height };
 }
 
-/**
- * 渲染样式
- * @param {String} cssText css样式
- * @param {Element} elem css插入节点
- * @returns {Element} 返回 style element
- */
-
-
-/**
- * 获取 HTML 节点
- * @param {String} selector 选择器
- * @returns {Element} HTML节点
- */
-function $(selector) {
-  return isString(selector) ? document.querySelector(selector) : selector;
-}
-
-/**
- * 判断节点是否存在页面上
- * @param {Element} node 节点
- */
-function isInPage(node) {
-  return document.body.contains(node);
-}
-
-/**
- * 设置CSS样式
- * @param {Object} el 节点
- * @param {Object} css 样式
- */
-function setStyle(el, css) {
-  for (var prop in css) {
-    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
-
-    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
-      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
-    } else {
-      el.style[prop] = value;
-    }
-  }
-}
-
-var notwhite = /\S+/g;
-
-/**
- * 设置 className
- * @param {Element} el 节点
- * @param {Object} options 选项
- */
-var setClass = function () {
-  /**
-   * 添加 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function add(curClassName, className) {
-    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
-
-    return curClassName === '' ? className : curClassName + ' ' + className;
-  }
-
-  /**
-   * 移除 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function remove(curClassName, className) {
-    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
-
-    classNameArr.forEach(function (name) {
-      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
-    });
-
-    return curClassName.trim();
-  }
-
-  return function (el, options) {
-    var className = el.className;
-    if (options.remove) {
-      className = remove(className, options.remove);
-    }
-    if (options.add) {
-      className = add(className, options.add);
-    }
-    el.className = className;
-  };
-}();
-
 function initActions(canvas) {
   // 图片缩放原点坐标
   canvas.firstOrigin = {
@@ -1958,6 +1980,7 @@ function drawImage(target, sx, sy, swidth, sheight, x, y, width, height) {
 /**
  * 默认选项
  */
+
 var defaults$$1 = {
   // 插入节点
   el: document.body,
@@ -1965,6 +1988,11 @@ var defaults$$1 = {
   viewWidth: VIEW_WIDTH,
   // 容器高度
   viewHeight: VIEW_HEIGHT,
+  // 裁剪框大小
+  border: {
+    width: BORDER_SIZE,
+    height: BORDER_SIZE
+  },
   // 允许缩放的最大比例
   maxScale: 2,
   // 画布比例
@@ -1984,16 +2012,7 @@ var Crop = function () {
     var crop = this;
 
     crop.options = extendDeep({}, defaults$$1, options);
-
-    var borderSize = Math.min(crop.options.viewWidth, crop.options.viewHeight) * 0.8;
-
-    // 裁剪框数据
-    crop.border = {
-      x: (crop.options.viewWidth - borderSize) / 2,
-      y: (crop.options.viewHeight - borderSize) / 2,
-      width: borderSize,
-      height: borderSize
-    };
+    crop.border = crop.options.border;
     crop.elements = {};
 
     crop.init();
@@ -2065,7 +2084,7 @@ var Crop = function () {
       crop.canvas.on('loaded', crop.show.bind(crop));
       crop.canvas.on('loaded', crop.render.bind(crop), true);
 
-      crop.elements.container.addEventListener('touchstart', crop.touchstart = crop.touchstart.bind(crop));
+      addListener(crop.elements.container, 'touchstart', crop.touchstart = crop.touchstart.bind(crop));
     }
   }, {
     key: 'touchstart',
@@ -2158,10 +2177,13 @@ var Crop = function () {
     key: 'setBorder',
     value: function setBorder(border) {
       var crop = this;
-      var x = border.x,
-          y = border.y,
-          width = border.width,
-          height = border.height;
+
+      var _crop$checkBorder = crop.checkBorder(border),
+          x = _crop$checkBorder.x,
+          y = _crop$checkBorder.y,
+          width = _crop$checkBorder.width,
+          height = _crop$checkBorder.height;
+
       var _crop$options3 = crop.options,
           canvasRatio = _crop$options3.canvasRatio,
           viewWidth = _crop$options3.viewWidth,
@@ -2189,6 +2211,25 @@ var Crop = function () {
 
       crop.border = border;
       crop.canvasOffset = offset;
+    }
+  }, {
+    key: 'checkBorder',
+    value: function checkBorder(border) {
+      var x = border.x,
+          y = border.y,
+          width = border.width,
+          height = border.height;
+      var _options = this.options,
+          viewWidth = _options.viewWidth,
+          viewHeight = _options.viewHeight;
+
+
+      border.width = isNumber(width) ? width : BORDER_SIZE;
+      border.height = isNumber(height) ? height : BORDER_SIZE;
+      border.x = isNumber(x) ? x : (viewWidth - border.width) / 2;
+      border.y = isNumber(y) ? y : (viewHeight - border.height) / 2;
+
+      return border;
     }
   }, {
     key: 'load',

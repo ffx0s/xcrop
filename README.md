@@ -52,6 +52,7 @@ document.getElementById('file-input').onchange = onChange
   :options="options"
   @on-cancle="onCancle"
   @on-confirm="onConfirm"
+  @on-error="onError"
 />
 <input type="file" @change="onChange($event)" accept="image/*" :value="''">
 <img v-if="output" :src="output" width="100%">
@@ -80,12 +81,76 @@ export default {
       this.output = crop.get()
       this.file = null
       crop.hide()
+    },
+    onError (error) {
+      console.log(error)
     }
   },
   components: {
     Crop
   }
 }
+```  
+
+## 基于 React 使用
+```js
+import React, { Component } from 'react'
+import Crop from 'xcrop/src/components/ReactCrop'
+
+export default class App extends Component {
+
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      options: {},
+      output: ''
+    }
+
+    this.onChange = this.onChange.bind(this)
+    this.onCancle = this.onCancle.bind(this)
+    this.onConfirm = this.onConfirm.bind(this)
+    this.onError = this.onError.bind(this)
+  }
+
+  onChange (e) {
+    this.crop[0].load(e.target.files[0])
+  }
+
+  onCancle (crop) {
+    crop.hide()
+  }
+
+  onConfirm (crop) {
+    this.setState({
+      output: crop.get()
+    })
+    crop.hide()
+  }
+
+  onError (error) {
+    console.log(error)
+  }
+
+  render () {
+    return (
+      <div className="App">
+        <input type="file" onChange={this.onChange} accept="image/*" value="" />
+
+        {this.state.output && <img src={this.state.output} width="100%" alt="" />}
+
+        <Crop
+          ref={component => this.crop = component || null}
+          options={this.state.options}
+          onCancle={this.onCancle}
+          onConfirm={this.onConfirm}
+          onError={this.onError}
+        />
+      </div>
+    )
+  }
+}
+
 ```
 
 ## Options  
@@ -96,7 +161,8 @@ export default {
 |:-----|:-------|:-----|:-----|-----------------------------|
 |el|false|Element|body|插入节点|
 |viewWidth|false|Number|document.documentElement.clientWidth|容器宽度|
-|viewHeight|false|Number|document.documentElement.clientHeight|容器高度|
+|viewHeight|false|Number|document.documentElement.clientHeight|容器高度|  
+|border|false|Object|{x,y,width,height}|裁剪框位置大小，默认居中，为容器80%大小|
 |maxScale|false|Number|2|允许缩放的最大比例|
 |confirmText|false|String|确认|确认按钮文字|
 |cancleText|false|String|取消|取消按钮文字|
