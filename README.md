@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 原生 JavaScript & Vue 2.0 移动端裁剪插件
+> 原生 JavaScript & Vue 2.0 & React 移动端裁剪插件
 
 ## 例子
 [GIF](https://o818xvhxo.qnssl.com/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
