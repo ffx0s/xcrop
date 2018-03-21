@@ -15,9 +15,11 @@
 <body>
   <br />
   <br />
-  <input type="file" id="file-input" accept="image/*">
-  <button ontouchstart="destroy()">销毁</button>
+  <input type="file" id="fileInput" accept="image/*">
+  <button id="destroyBtn">销毁</button>
+
   <script src="../dist/crop.js"></script>
+
   <script>
     window.onload = function () {
       var crop = new Crop()
@@ -31,26 +33,24 @@
         crop.hide()
       })
 
-      document.getElementById('file-input').onchange = onChange
-
-      function onChange(e) {
+      function onChange (e) {
         var file = e.target.files[0]
         if (!file) return false
         crop.load(file)
         this.value = ''
       }
 
-      function createImage(src) {
+      function createImage (src) {
         var img = new Image()
         img.onload = function () {
           var div = document.createElement('div')
-          div.innerHTML = `<h2>${img.width}x${img.height}: </h2><img src="${src}" style="width: 300px;">`
+          div.innerHTML = `<h2>${img.width}x${img.height}: </h2><img src="${src}" style="width: ${Math.min(img.width, 300)}px;">`
           document.body.appendChild(div)
         }
         img.src = src
       }
 
-      function destroy() {
+      function destroy () {
         if (crop) {
           crop.destroy()
           // 移除引用关系
@@ -58,9 +58,11 @@
         }
       }
 
+      document.getElementById('fileInput').addEventListener('change', onChange)
+      document.getElementById('destroyBtn').addEventListener('touchstart', destroy)
+
       window.crop = crop
     }
-
   </script>
 
 </html>

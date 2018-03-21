@@ -1,5 +1,6 @@
 import animate from '../util/animate'
 import { delay, makeArray, noop } from '../util/shared'
+import { addListener } from '../util/element'
 import { getTouchCenter, getScale } from './helper'
 
 export function initEvent (canvas) {
@@ -22,7 +23,7 @@ export default {
     const element = that.options.touchTarget || that.canvas
 
     that.eventList.forEach(eventName => {
-      element.addEventListener(eventName, (that[eventName] = that[eventName].bind(that)))
+      addListener(element, eventName, (that[eventName] = that[eventName].bind(that)), { passive: false })
     })
   },
 
@@ -79,6 +80,8 @@ export default {
   },
 
   touchmove (e) {
+    e.preventDefault()
+
     const that = this
     const touches = e.touches
 
