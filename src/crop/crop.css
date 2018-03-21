@@ -5,6 +5,7 @@
   overflow: hidden;
   background: #000;
   z-index: 99;
+  touch-action: none;
   transition: .3s transform;
   -webkit-transition: .3s -webkit-transform;
   &.crop-hide {

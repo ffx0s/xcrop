@@ -1,21 +1,17 @@
 import './crop.css'
 import template from './template'
 import Canvas from '../canvas/index'
-import {
-  VIEW_WIDTH, VIEW_HEIGHT, CROP_HIDE
-} from '../constants'
-import {
-  delay, extendDeep, makeArray,
-  objectAssign
-} from '../util/shared'
+import { VIEW_WIDTH, VIEW_HEIGHT, CROP_HIDE, BORDER_SIZE } from '../constants'
+import { delay, extendDeep, makeArray, objectAssign, isNumber } from '../util/shared'
 import { dataURItoBlob, URL } from '../util/file'
 import { antialisScale, drawImage } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
-import { setStyle, setClass, isInPage } from '../util/element'
+import { setStyle, setClass, isInPage, addListener } from '../util/element'
 
 /**
  * 默认选项
  */
+
 const defaults = {
   // 插入节点
   el: document.body,
@@ -23,6 +19,11 @@ const defaults = {
   viewWidth: VIEW_WIDTH,
   // 容器高度
   viewHeight: VIEW_HEIGHT,
+  // 裁剪框大小
+  border: {
+    width: BORDER_SIZE,
+    height: BORDER_SIZE
+  },
   // 允许缩放的最大比例
   maxScale: 2,
   // 画布比例
@@ -39,16 +40,7 @@ class Crop {
     const crop = this
 
     crop.options = extendDeep({}, defaults, options)
-
-    const borderSize = Math.min(crop.options.viewWidth, crop.options.viewHeight) * 0.8
-
-    // 裁剪框数据
-    crop.border = {
-      x: (crop.options.viewWidth - borderSize) / 2,
-      y: (crop.options.viewHeight - borderSize) / 2,
-      width: borderSize,
-      height: borderSize
-    }
+    crop.border = crop.options.border
     crop.elements = {}
 
     crop.init()
@@ -106,7 +98,7 @@ class Crop {
     crop.canvas.on('loaded', crop.show.bind(crop))
     crop.canvas.on('loaded', crop.render.bind(crop), true)
 
-    crop.elements.container.addEventListener('touchstart', (crop.touchstart = crop.touchstart.bind(crop)))
+    addListener(crop.elements.container, 'touchstart', (crop.touchstart = crop.touchstart.bind(crop)))
   }
 
   touchstart (e) {
@@ -197,7 +189,7 @@ class Crop {
    */
   setBorder (border) {
     const crop = this
-    const { x, y, width, height } = border
+    const { x, y, width, height } = crop.checkBorder(border)
     const { canvasRatio, viewWidth, viewHeight } = crop.options
     const maskProps = {
       width,
@@ -221,6 +213,18 @@ class Crop {
 
     crop.border = border
     crop.canvasOffset = offset
+  }
+
+  checkBorder (border) {
+    const { x, y, width, height } = border
+    const { viewWidth, viewHeight } = this.options
+
+    border.width = isNumber(width) ? width : BORDER_SIZE
+    border.height = isNumber(height) ? height : BORDER_SIZE
+    border.x = isNumber(x) ? x : (viewWidth - border.width) / 2
+    border.y = isNumber(y) ? y : (viewHeight - border.height) / 2
+
+    return border
   }
 
   load (target) {

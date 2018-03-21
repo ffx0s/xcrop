@@ -100,3 +100,21 @@ export const setClass = (() => {
     el.className = className
   }
 })()
+
+// 是否支持 passive 属性
+export let supportsPassive = false
+
+try {
+  const opts = Object.defineProperty({}, 'passive', {
+    get: function () {
+      supportsPassive = true
+    }
+  })
+  win.addEventListener('testPassive', null, opts)
+  win.removeEventListener('testPassive', null, opts)
+} catch (e) {}
+
+// 添加事件
+export function addListener (element, type, fn, options) {
+  element.addEventListener(type, fn, supportsPassive ? (options || { passive: true }) : false)
+}
