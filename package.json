@@ -13,7 +13,11 @@
     "cropper",
     "cropping"
   ],
-  "author": "99",
+  "repository": "ffx0s/xcrop",
+  "author": {
+    "name": "ffx0s",
+    "url": "https://webfed.cn"
+  },
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
