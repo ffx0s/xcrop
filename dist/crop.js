@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.3
+   * @name xcrop v1.1.4
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
