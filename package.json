@@ -1,7 +1,7 @@
 {
   "name": "xcrop",
   "version": "1.1.4",
-  "description": "image cropping plugin",
+  "description": "JavaScript Vue & React image cropper",
   "main": "dist/crop.js",
   "scripts": {
     "dev": "./node_modules/.bin/rollup -c -w",
@@ -11,7 +11,11 @@
   "keywords": [
     "crop",
     "cropper",
-    "cropping"
+    "cropping",
+    "vue cropper",
+    "vue crop",
+    "react cropper",
+    "react crop"
   ],
   "repository": "ffx0s/xcrop",
   "author": {
