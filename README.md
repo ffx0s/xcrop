@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 原生 JavaScript & Vue 2.0 & React 移动端裁剪插件
+> 移动端裁剪插件，原生 JavaScript 实现，无依赖，支持 Vue 2.0，React。
 
 ## 例子
 [GIF](http://static.webfed.cn/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
