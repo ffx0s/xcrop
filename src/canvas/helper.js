@@ -33,28 +33,24 @@ export function getScale (start, end) {
 }
 
 /**
- * 以点坐标为原点计进行缩放，计算缩放后位置的函数，返回缩放后的x,y,scale
- * https://stackoverflow.com/questions/48097552/how-to-zoom-on-a-point-with-javascript
- * @param {Object} currentOrigin 当前原点坐标
- * @param {Object} firstOrigin 第一次缩放时的原点坐标
- * @param {Object} point 缩放点
- * @param {Number} scale 当前比例
- * @param {Number} scaleChanged 每次缩放的比例系数
+ * 以指定点坐标为原点进行缩放，计算缩放后位置的函数，返回缩放后的{x,y,scale}
+ * @param {Object} current 当前物体坐标{x,y,scale}
+ * @param {Object} point 缩放原点{x,y}
+ * @param {Number} scale 目标比例
  */
-export function calculate (currentOrigin, firstOrigin, point, scale, scaleChanged) {
-  // 鼠标坐标与当前原点的距离
-  const distanceX = point.x - currentOrigin.x
-  const distanceY = point.y - currentOrigin.y
-  // 新原点坐标
-  const newOriginX = currentOrigin.x + distanceX * (1 - scaleChanged)
-  const newOriginY = currentOrigin.y + distanceY * (1 - scaleChanged)
-  const offsetX = newOriginX - firstOrigin.x
-  const offsetY = newOriginY - firstOrigin.y
+export function calculate (current, point, scale) {
+  // 指定原点座标与当前物体的距离
+  const distanceX = point.x - current.x
+  const distanceY = point.y - current.y
+
+  const scaleChanged = 1 - scale / current.scale
+  const x = current.x + distanceX * scaleChanged
+  const y = current.y + distanceY * scaleChanged
 
   return {
-    scale: scale * scaleChanged,
-    x: firstOrigin.x + offsetX,
-    y: firstOrigin.y + offsetY
+    x,
+    y,
+    scale
   }
 }
 

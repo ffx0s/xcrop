@@ -1,13 +1,14 @@
 import { calculate } from './helper'
 
 export default {
-  validation () {
+  validation (position) {
     const that = this
+    position = position || that.position
     const { maxScale, minScale } = that.options
-    let scale = that.position.scale
+    let scale = position.scale
     let result = {
-      xpos: that.position.x,
-      ypos: that.position.y,
+      xpos: position.x,
+      ypos: position.y,
       isDraw: false
     }
 
@@ -17,23 +18,19 @@ export default {
     } else if (scale < minScale) {
       setScale(minScale)
     } else {
-      result = that.checkBorder(that.position, scale, that.position)
+      result = that.checkBorder(position, scale, position)
+      result.scale = scale
     }
 
     function setScale (newScale) {
-      const scaleChanged = (newScale / that.position.scale)
-      const { x, y } = calculate(that.position, that.firstOrigin, that.last.point, scale, scaleChanged)
+      const { x, y } = calculate(position, that.last.point, newScale)
 
-      scale = newScale
       result = that.checkBorder({ x, y }, newScale, { x, y })
+      result.scale = newScale
       result.isDraw = true
     }
 
-    if (result.isDraw) {
-      that.animate(scale, result.xpos, result.ypos)
-    }
-
-    return result.isDraw
+    return result
   },
 
   /**
