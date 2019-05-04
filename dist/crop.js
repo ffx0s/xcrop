@@ -54,7 +54,7 @@ function template(options) {
 var VIEW_WIDTH = document.documentElement.clientWidth;
 var VIEW_HEIGHT = document.documentElement.clientHeight;
 
-var BORDER_SIZE = Math.min(VIEW_WIDTH, VIEW_HEIGHT) * 0.8;
+var BORDER_SIZE = Math.min(VIEW_WIDTH, VIEW_HEIGHT) * 0.9;
 
 var CROP_HIDE = 'crop-hide';
 
@@ -227,28 +227,24 @@ function getScale(start, end) {
 }
 
 /**
- * 以点坐标为原点计进行缩放，计算缩放后位置的函数，返回缩放后的x,y,scale
- * https://stackoverflow.com/questions/48097552/how-to-zoom-on-a-point-with-javascript
- * @param {Object} currentOrigin 当前原点坐标
- * @param {Object} firstOrigin 第一次缩放时的原点坐标
- * @param {Object} point 缩放点
- * @param {Number} scale 当前比例
- * @param {Number} scaleChanged 每次缩放的比例系数
+ * 以指定点坐标为原点进行缩放，计算缩放后位置的函数，返回缩放后的{x,y,scale}
+ * @param {Object} current 当前物体坐标{x,y,scale}
+ * @param {Object} point 缩放原点{x,y}
+ * @param {Number} scale 目标比例
  */
-function calculate(currentOrigin, firstOrigin, point, scale, scaleChanged) {
-  // 鼠标坐标与当前原点的距离
-  var distanceX = point.x - currentOrigin.x;
-  var distanceY = point.y - currentOrigin.y;
-  // 新原点坐标
-  var newOriginX = currentOrigin.x + distanceX * (1 - scaleChanged);
-  var newOriginY = currentOrigin.y + distanceY * (1 - scaleChanged);
-  var offsetX = newOriginX - firstOrigin.x;
-  var offsetY = newOriginY - firstOrigin.y;
+function calculate(current, point, scale) {
+  // 指定原点座标与当前物体的距离
+  var distanceX = point.x - current.x;
+  var distanceY = point.y - current.y;
+
+  var scaleChanged = 1 - scale / current.scale;
+  var x = current.x + distanceX * scaleChanged;
+  var y = current.y + distanceY * scaleChanged;
 
   return {
-    scale: scale * scaleChanged,
-    x: firstOrigin.x + offsetX,
-    y: firstOrigin.y + offsetY
+    x: x,
+    y: y,
+    scale: scale
   };
 }
 
@@ -301,6 +297,367 @@ var render$1 = {
   }
 };
 
+/**
+ * 获取 HTML 节点
+ * @param {String} selector 选择器
+ * @returns {Element} HTML节点
+ */
+function $(selector) {
+  return isString(selector) ? document.querySelector(selector) : selector;
+}
+
+/**
+ * 判断节点是否存在页面上
+ * @param {Element} node 节点
+ */
+function isInPage(node) {
+  return document.body.contains(node);
+}
+
+/**
+ * 设置CSS样式
+ * @param {Object} el 节点
+ * @param {Object} css 样式
+ */
+function setStyle(el, css) {
+  for (var prop in css) {
+    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
+
+    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
+      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
+    } else {
+      el.style[prop] = value;
+    }
+  }
+}
+
+var notwhite = /\S+/g;
+
+/**
+ * 设置 className
+ * @param {Element} el 节点
+ * @param {Object} options 选项
+ */
+var setClass = function () {
+  /**
+   * 添加 className
+   * @param {String} curClassName 当前类
+   * @param {String} className 新类
+   */
+  function add(curClassName, className) {
+    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
+
+    return curClassName === '' ? className : curClassName + ' ' + className;
+  }
+
+  /**
+   * 移除 className
+   * @param {String} curClassName 当前类
+   * @param {String} className 新类
+   */
+  function remove(curClassName, className) {
+    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
+
+    classNameArr.forEach(function (name) {
+      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
+    });
+
+    return curClassName.trim();
+  }
+
+  return function (el, options) {
+    var className = el.className;
+    if (options.remove) {
+      className = remove(className, options.remove);
+    }
+    if (options.add) {
+      className = add(className, options.add);
+    }
+    el.className = className;
+  };
+}();
+
+// 是否支持 passive 属性
+var supportsPassive = false;
+
+try {
+  var opts = Object.defineProperty({}, 'passive', {
+    get: function get() {
+      supportsPassive = true;
+    }
+  });
+  win.addEventListener('testPassive', null, opts);
+  win.removeEventListener('testPassive', null, opts);
+} catch (e) {}
+
+// 添加事件
+function addListener(element, type, fn, options) {
+  element.addEventListener(type, fn, supportsPassive ? options || { passive: true } : false);
+}
+
+function initEvent$1(canvas) {
+  canvas.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
+  // 最后一次事件操作的参数
+  canvas.last = {
+    point: { x: 0, y: 0 },
+    move: { x: 0, y: 0 },
+    time: 0,
+    dis: { time: 0, x: 0, y: 0 }
+  };
+  canvas.touchDelay = 3;
+  canvas.animation = { stop: noop };
+  canvas.wheeling = false;
+  canvas.upTime = 0;
+}
+
+var events = {
+  bindEvent: function bindEvent() {
+    var that = this;
+    var element = that.options.touchTarget || that.canvas;
+
+    that.eventList.forEach(function (eventName) {
+      addListener(element, eventName, that[eventName] = that[eventName].bind(that), { passive: false });
+    });
+  },
+  removeEvent: function removeEvent() {
+    var that = this;
+    var target = that.options.touchTarget || that.canvas;
+
+    that.eventList.forEach(function (eventName) {
+      target.removeEventListener(eventName, that[eventName]);
+    });
+  },
+  mousewheel: function mousewheel(e) {
+    e.preventDefault();
+
+    var that = this;
+
+    if (that.wheeling) return;
+
+    // 降低滚动频率
+    delay(function () {
+      that.wheeling = false;
+    }, 30);
+
+    that.wheeling = true;
+
+    var STEP = 0.99;
+    var factor = e.deltaY;
+    var scaleChanged = Math.pow(STEP, factor);
+
+    that.rect = that.canvas.getBoundingClientRect();
+    that.last.point = {
+      x: (e.clientX - that.rect.left) * that.canvasRatio,
+      y: (e.clientY - that.rect.top) * that.canvasRatio
+    };
+
+    that.scaleTo(that.last.point, that.position.scale * scaleChanged);
+    that.emit('mousewheel', e);
+  },
+  touchstart: function touchstart(e) {
+    e.preventDefault();
+
+    var that = this;
+    var touches = e.touches;
+
+    that.moved = false;
+    that.animation.stop();
+
+    if (touches.length === 2) {
+      that.pinchstart(e);
+    } else if (touches.length === 1) {
+      that.dragstart(e);
+    }
+  },
+  touchmove: function touchmove(e) {
+    e.preventDefault();
+
+    var that = this;
+    var touches = e.touches;
+    that.moved = true;
+
+    if (touches.length === 2) {
+      that.pinchmove(e);
+    } else if (touches.length === 1) {
+      that.dragmove(e);
+    }
+  },
+  touchend: function touchend(e) {
+    var that = this;
+    var touches = e.touches;
+    var time = Date.now();
+
+    clearTimeout(that.timer);
+
+    if (!that.moved) {
+      var dobuleclickTime = 300;
+      // 模拟双击事件
+      if (time - that.upTime <= dobuleclickTime) {
+        that.dobuleClick();
+      }
+    }
+
+    this.upTime = time;
+
+    if (touches.length) {
+      // pinch end
+      that.emit('pinchend', e);
+      that.dragstart(e);
+    } else {
+      // drag end
+      that.dragend(e);
+    }
+  },
+  dragstart: function dragstart(e) {
+    var that = this;
+    var touches = e.touches;
+
+    that.last.move = {
+      x: touches[0].clientX,
+      y: touches[0].clientY
+    };
+    that.last.dis = {
+      time: 0,
+      x: 0,
+      y: 0
+    };
+    that.last.time = new Date().getTime();
+    that.touchDelay = 3;
+    that.emit('dragstart', e);
+  },
+  dragmove: function dragmove(e) {
+    var that = this;
+    var touches = e.touches;
+    var move = {
+      x: touches[0].clientX,
+      y: touches[0].clientY
+    };
+    var x = (move.x - that.last.move.x) * that.canvasRatio;
+    var y = (move.y - that.last.move.y) * that.canvasRatio;
+    var nowTime = new Date().getTime();
+
+    that.last.dis = {
+      x: x,
+      y: y,
+      time: nowTime - that.last.time
+    };
+    that.last.time = nowTime;
+    that.last.move = move;
+
+    // 延迟防止手误操作
+    if (that.touchDelay) {
+      that.touchDelay--;
+      return;
+    }
+
+    that.moveTo(that.position.x + x, that.position.y + y);
+    that.emit('dragmove', e);
+  },
+  dragend: function dragend(e) {
+    var that = this;
+    if (!that.moved) return;
+
+    var speed = 0.4;
+    var position = that.position;
+    var vx = that.last.dis.x / that.last.dis.time;
+    var vy = that.last.dis.y / that.last.dis.time;
+    var scale = position.scale;
+
+    // 缓冲动画
+    if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
+      var time = 420;
+      var x = position.x + vx * time;
+      var y = position.y + vy * time;
+      var type = 'easeOutCubic';
+      var result = that.validation({ x: x, y: y, scale: scale });
+
+      if (result.isDraw) {
+        x = result.xpos;
+        y = result.ypos;
+        scale = result.scale;
+        type = 'easeOutBack';
+      }
+
+      that.animate(scale, x, y, { type: type, time: time * 2 });
+    } else {
+      var _result = that.validation();
+      if (_result.isDraw) {
+        that.animate(_result.scale, _result.xpos, _result.ypos);
+      }
+    }
+
+    that.emit('dragend', e);
+  },
+  pinchstart: function pinchstart(e) {
+    var that = this;
+    var zoom = makeArray(e.touches).map(function (touch) {
+      return { x: touch.clientX, y: touch.clientY };
+    });
+    var touchCenter = getTouchCenter(zoom);
+
+    that.rect = that.canvas.getBoundingClientRect();
+    that.last.zoom = zoom;
+    that.last.point = {
+      x: (touchCenter.x - that.rect.left) * that.canvasRatio,
+      y: (touchCenter.y - that.rect.top) * that.canvasRatio
+    };
+    that.touchDelay = 5;
+
+    that.emit('pinchstart', e);
+  },
+  pinchmove: function pinchmove(e) {
+    var that = this;
+    var zoom = makeArray(e.touches).map(function (touch) {
+      return { x: touch.clientX, y: touch.clientY };
+    });
+    // 双指的中心点
+    var touchCenter = getTouchCenter(zoom);
+    // 相对于canvas画布的中心点
+    var point = {
+      x: (touchCenter.x - that.rect.left) * that.canvasRatio,
+      y: (touchCenter.y - that.rect.top) * that.canvasRatio
+      // 双指两次移动的差值
+    };var disX = point.x - that.last.point.x;
+    var disY = point.y - that.last.point.y;
+    // 双指两次移动间隔的比例
+    var scaleChanged = getScale(that.last.zoom, zoom);
+
+    that.last.zoom = zoom;
+    that.last.point = point;
+
+    // 延迟防止手误操作
+    if (that.touchDelay) {
+      that.touchDelay--;
+      return;
+    }
+
+    that.position.x += disX;
+    that.position.y += disY;
+
+    that.scaleTo(point, that.position.scale * scaleChanged);
+    that.emit('pinchmove', e);
+  },
+  dobuleClick: function dobuleClick() {
+    var that = this;
+    var rect = that.canvas.getBoundingClientRect();
+    var _that$options = that.options,
+        maxScale = _that$options.maxScale,
+        minScale = _that$options.minScale;
+
+    var point = {
+      x: (that.last.move.x - rect.left) * that.canvasRatio,
+      y: (that.last.move.y - rect.top) * that.canvasRatio
+    };
+    var scale = that.position.scale;
+    if (scale < maxScale) {
+      scale = maxScale;
+    } else {
+      scale = minScale;
+    }
+    that.scaleTo(point, scale, true, true);
+  }
+};
+
 // t:当前时间、b:初始值、c:变化值、d:总时间，返回结果为当前的位置
 
 var Easing = {
@@ -328,6 +685,12 @@ var Easing = {
   // },
   easeOutCubic: function easeOutCubic(t, b, c, d) {
     return c * ((t = t / d - 1) * t * t + 1) + b;
+  },
+  easeOutBack: function easeOutBack(t, b, c, d, s) {
+    if (s === void 0) {
+      s = 1.70158;
+    }
+    return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
   }
   // easeInOutCubic (t, b, c, d) {
   //   if ((t /= d / 2) < 1) {
@@ -593,348 +956,6 @@ var defaultsOptions = {
       cancelAnimationFrame(timer);
     }
   };
-};
-
-/**
- * 渲染样式
- * @param {String} cssText css样式
- * @param {Element} elem css插入节点
- * @returns {Element} 返回 style element
- */
-
-
-/**
- * 获取 HTML 节点
- * @param {String} selector 选择器
- * @returns {Element} HTML节点
- */
-function $(selector) {
-  return isString(selector) ? document.querySelector(selector) : selector;
-}
-
-/**
- * 判断节点是否存在页面上
- * @param {Element} node 节点
- */
-function isInPage(node) {
-  return document.body.contains(node);
-}
-
-/**
- * 设置CSS样式
- * @param {Object} el 节点
- * @param {Object} css 样式
- */
-function setStyle(el, css) {
-  for (var prop in css) {
-    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
-
-    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
-      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
-    } else {
-      el.style[prop] = value;
-    }
-  }
-}
-
-var notwhite = /\S+/g;
-
-/**
- * 设置 className
- * @param {Element} el 节点
- * @param {Object} options 选项
- */
-var setClass = function () {
-  /**
-   * 添加 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function add(curClassName, className) {
-    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
-
-    return curClassName === '' ? className : curClassName + ' ' + className;
-  }
-
-  /**
-   * 移除 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function remove(curClassName, className) {
-    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
-
-    classNameArr.forEach(function (name) {
-      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
-    });
-
-    return curClassName.trim();
-  }
-
-  return function (el, options) {
-    var className = el.className;
-    if (options.remove) {
-      className = remove(className, options.remove);
-    }
-    if (options.add) {
-      className = add(className, options.add);
-    }
-    el.className = className;
-  };
-}();
-
-// 是否支持 passive 属性
-var supportsPassive = false;
-
-try {
-  var opts = Object.defineProperty({}, 'passive', {
-    get: function get() {
-      supportsPassive = true;
-    }
-  });
-  win.addEventListener('testPassive', null, opts);
-  win.removeEventListener('testPassive', null, opts);
-} catch (e) {}
-
-// 添加事件
-function addListener(element, type, fn, options) {
-  element.addEventListener(type, fn, supportsPassive ? options || { passive: true } : false);
-}
-
-function initEvent$1(canvas) {
-  canvas.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
-  // 最后一次事件操作的参数
-  canvas.last = {
-    point: { x: 0, y: 0 },
-    move: { x: 0, y: 0 },
-    time: 0,
-    dis: { time: 0, x: 0, y: 0 }
-  };
-  canvas.touchDelay = 3;
-  canvas.animation = { stop: noop };
-  canvas.wheeling = false;
-}
-
-var events = {
-  bindEvent: function bindEvent() {
-    var that = this;
-    var element = that.options.touchTarget || that.canvas;
-
-    that.eventList.forEach(function (eventName) {
-      addListener(element, eventName, that[eventName] = that[eventName].bind(that), { passive: false });
-    });
-  },
-  removeEvent: function removeEvent() {
-    var that = this;
-    var target = that.options.touchTarget || that.canvas;
-
-    that.eventList.forEach(function (eventName) {
-      target.removeEventListener(eventName, that[eventName]);
-    });
-  },
-  mousewheel: function mousewheel(e) {
-    e.preventDefault();
-
-    var that = this;
-
-    if (that.wheeling) return;
-
-    // 降低滚动频率
-    delay(function () {
-      that.wheeling = false;
-    }, 30);
-
-    that.wheeling = true;
-
-    var STEP = 0.99;
-    var factor = e.deltaY;
-    var scaleChanged = Math.pow(STEP, factor);
-
-    that.rect = that.canvas.getBoundingClientRect();
-    that.last.point = {
-      x: (e.clientX - that.rect.left) * that.canvasRatio,
-      y: (e.clientY - that.rect.top) * that.canvasRatio
-    };
-
-    that.scaleTo(that.last.point, that.position.scale * scaleChanged);
-    that.emit('mousewheel', e);
-  },
-  touchstart: function touchstart(e) {
-    e.preventDefault();
-
-    var that = this;
-    var touches = e.touches;
-
-    that.animation.stop();
-
-    if (touches.length === 2) {
-      that.pinchstart(e);
-    } else if (touches.length === 1) {
-      that.dragstart(e);
-    }
-  },
-  touchmove: function touchmove(e) {
-    e.preventDefault();
-
-    var that = this;
-    var touches = e.touches;
-
-    if (touches.length === 2) {
-      that.pinchmove(e);
-    } else if (touches.length === 1) {
-      that.dragmove(e);
-    }
-  },
-  touchend: function touchend(e) {
-    var that = this;
-    var touches = e.touches;
-
-    if (touches.length) {
-      // pinch end
-      that.emit('pinchend', e);
-      that.dragstart(e);
-    } else {
-      // drag end
-      that.dragend(e);
-    }
-  },
-  dragstart: function dragstart(e) {
-    var that = this;
-    var touches = e.touches;
-
-    that.last.move = {
-      x: touches[0].clientX,
-      y: touches[0].clientY
-    };
-    that.last.dis = {
-      time: 0,
-      x: 0,
-      y: 0
-    };
-    that.last.time = new Date().getTime();
-    that.touchDelay = 3;
-
-    that.emit('dragstart', e);
-  },
-  dragmove: function dragmove(e) {
-    var that = this;
-    var touches = e.touches;
-    var move = {
-      x: touches[0].clientX,
-      y: touches[0].clientY
-    };
-    var x = (move.x - that.last.move.x) * that.canvasRatio;
-    var y = (move.y - that.last.move.y) * that.canvasRatio;
-    var nowTime = new Date().getTime();
-
-    that.last.dis = {
-      x: x,
-      y: y,
-      time: nowTime - that.last.time
-    };
-    that.last.time = nowTime;
-    that.last.move = move;
-
-    // 延迟防止手误操作
-    if (that.touchDelay) {
-      that.touchDelay--;
-      return;
-    }
-
-    that.moveTo(that.position.x + x, that.position.y + y);
-    that.emit('dragmove', e);
-  },
-  dragend: function dragend(e) {
-    var that = this;
-
-    if (!that.validation()) {
-      // 缓冲动画
-      var position = that.position;
-      var vx = that.last.dis.x / that.last.dis.time;
-      var vy = that.last.dis.y / that.last.dis.time;
-      var speed = 0.4;
-
-      if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
-        var time = 300;
-        var x = position.x + vx * time;
-        var y = position.y + vy * time;
-
-        var _that$checkBorder = that.checkBorder({ x: x, y: y }, position.scale, { x: x, y: y }),
-            isDraw = _that$checkBorder.isDraw,
-            xpos = _that$checkBorder.xpos,
-            ypos = _that$checkBorder.ypos;
-
-        if (isDraw) {
-          x = xpos + vx * 8;
-          y = ypos + vy * 8;
-        }
-
-        that.animation = _animate({
-          time: time * 2,
-          targets: [[position.x, x], [position.y, y]],
-          type: 'easeOutCubic',
-          running: function running(target) {
-            that.setData({ x: target[0], y: target[1] });
-            that.draw();
-          },
-          end: function end() {
-            that.validation();
-          }
-        });
-      }
-    }
-
-    that.emit('dragend', e);
-  },
-  pinchstart: function pinchstart(e) {
-    var that = this;
-    var zoom = makeArray(e.touches).map(function (touch) {
-      return { x: touch.clientX, y: touch.clientY };
-    });
-    var touchCenter = getTouchCenter(zoom);
-
-    that.rect = that.canvas.getBoundingClientRect();
-    that.last.zoom = zoom;
-    that.last.point = {
-      x: (touchCenter.x - that.rect.left) * that.canvasRatio,
-      y: (touchCenter.y - that.rect.top) * that.canvasRatio
-    };
-    that.touchDelay = 5;
-
-    that.emit('pinchstart', e);
-  },
-  pinchmove: function pinchmove(e) {
-    var that = this;
-    var zoom = makeArray(e.touches).map(function (touch) {
-      return { x: touch.clientX, y: touch.clientY };
-    });
-    // 双指的中心点
-    var touchCenter = getTouchCenter(zoom);
-    // 相对于canvas画布的中心点
-    var point = {
-      x: (touchCenter.x - that.rect.left) * that.canvasRatio,
-      y: (touchCenter.y - that.rect.top) * that.canvasRatio
-      // 双指两次移动的差值
-    };var disX = point.x - that.last.point.x;
-    var disY = point.y - that.last.point.y;
-    // 双指两次移动间隔的比例
-    var scaleChanged = getScale(that.last.zoom, zoom);
-
-    that.last.zoom = zoom;
-    that.last.point = point;
-
-    // 延迟防止手误操作
-    if (that.touchDelay) {
-      that.touchDelay--;
-      return;
-    }
-
-    that.position.x += disX;
-    that.position.y += disY;
-
-    that.scaleTo(point, that.position.scale * scaleChanged);
-    that.emit('pinchmove', e);
-  }
 };
 
 var URL = win.URL && win.URL.createObjectURL ? win.URL : win.webkitURL && win.webkitURL.createObjectURL ? win.webkitURL : null;
@@ -1442,12 +1463,8 @@ function resetSize(image, options) {
 }
 
 function initActions(canvas) {
-  // 图片缩放原点坐标
-  canvas.firstOrigin = {
-    x: 0,
-    y: 0
-    // 图片相对于canvas的坐标
-  };canvas.position = {
+  // 图片相对于canvas的坐标
+  canvas.position = {
     x: 0,
     y: 0,
     width: 0,
@@ -1511,11 +1528,6 @@ var actions = {
 
     that.options.maxScale = _maxScale === _minScale ? position.scale * Math.max(maxScale, 1) : maxScale;
     that.options.minScale = _minScale;
-    // 图片原点
-    that.firstOrigin = {
-      x: position.x,
-      y: position.y
-    };
     that.position = position;
     that.image = image;
   },
@@ -1573,28 +1585,41 @@ var actions = {
    * @property {number} point.x x坐标
    * @property {number} point.y y坐标
    * @param {number} scale 缩放比例
+   * @param {Boolean} transition 是否动画过渡 默认无
+   * @param {Boolean} check 超出范围是否修正图片位置
    */
-  scaleTo: function scaleTo(point, scale) {
+  scaleTo: function scaleTo(point, scale, transition, check) {
     var that = this;
+    var currentScale = that.position.scale;
+    if (scale === currentScale) return;
 
-    if (scale === that.position.scale) return;
-
-    var scaleChanged = scale / that.position.scale;
-
-    var _calculate = calculate(that.position, that.firstOrigin, point, scale / scaleChanged, scaleChanged),
+    var _calculate = calculate(that.position, point, scale),
         x = _calculate.x,
         y = _calculate.y;
 
-    that.setData({ scale: scale });
-    that.moveTo(x, y);
+    if (check) {
+      var result = that.checkBorder({ x: x, y: y }, scale, { x: x, y: y });
+      x = result.xpos;
+      y = result.ypos;
+    }
+
+    if (transition) {
+      that.animate(scale, x, y);
+    } else {
+      that.setData({ scale: scale });
+      that.moveTo(x, y);
+    }
   },
   animate: function animate(scale, xpos, ypos) {
+    var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { time: 450, type: 'easeOutCubic' };
+
     var that = this;
 
+    that.animation.stop();
     that.animation = _animate({
       targets: [[that.position.scale, scale], [that.position.x, xpos], [that.position.y, ypos]],
-      time: 450,
-      type: 'easeOutCubic',
+      time: options.time,
+      type: options.type,
       running: function running(target) {
         that.setData({
           scale: target[0],
@@ -1608,16 +1633,17 @@ var actions = {
 };
 
 var validation$1 = {
-  validation: function validation() {
+  validation: function validation(position) {
     var that = this;
+    position = position || that.position;
     var _that$options = that.options,
         maxScale = _that$options.maxScale,
         minScale = _that$options.minScale;
 
-    var scale = that.position.scale;
+    var scale = position.scale;
     var result = {
-      xpos: that.position.x,
-      ypos: that.position.y,
+      xpos: position.x,
+      ypos: position.y,
       isDraw: false
 
       // 缩放比例判断
@@ -1626,26 +1652,21 @@ var validation$1 = {
     } else if (scale < minScale) {
       setScale(minScale);
     } else {
-      result = that.checkBorder(that.position, scale, that.position);
+      result = that.checkBorder(position, scale, position);
+      result.scale = scale;
     }
 
     function setScale(newScale) {
-      var scaleChanged = newScale / that.position.scale;
-
-      var _calculate = calculate(that.position, that.firstOrigin, that.last.point, scale, scaleChanged),
+      var _calculate = calculate(position, that.last.point, newScale),
           x = _calculate.x,
           y = _calculate.y;
 
-      scale = newScale;
       result = that.checkBorder({ x: x, y: y }, newScale, { x: x, y: y });
+      result.scale = newScale;
       result.isDraw = true;
     }
 
-    if (result.isDraw) {
-      that.animate(scale, result.xpos, result.ypos);
-    }
-
-    return result.isDraw;
+    return result;
   },
 
 
@@ -1846,7 +1867,6 @@ var EventEmitter = function () {
   return EventEmitter;
 }();
 
-// 默认选项
 var defaults$1 = {
   el: document.body,
   // canvas宽度
@@ -1976,10 +1996,6 @@ function drawImage(target, sx, sy, swidth, sheight, x, y, width, height) {
 
   return canvas;
 }
-
-/**
- * 默认选项
- */
 
 var defaults$$1 = {
   // 插入节点
