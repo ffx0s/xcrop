@@ -1,4 +1,3 @@
-import animate from '../util/animate'
 import { delay, makeArray, noop } from '../util/shared'
 import { addListener } from '../util/element'
 import { getTouchCenter, getScale } from './helper'
@@ -15,6 +14,7 @@ export function initEvent (canvas) {
   canvas.touchDelay = 3
   canvas.animation = { stop: noop }
   canvas.wheeling = false
+  canvas.upTime = 0
 }
 
 export default {
@@ -70,6 +70,7 @@ export default {
     const that = this
     const touches = e.touches
 
+    that.moved = false
     that.animation.stop()
 
     if (touches.length === 2) {
@@ -84,6 +85,7 @@ export default {
 
     const that = this
     const touches = e.touches
+    that.moved = true
 
     if (touches.length === 2) {
       that.pinchmove(e)
@@ -95,6 +97,19 @@ export default {
   touchend (e) {
     const that = this
     const touches = e.touches
+    const time = Date.now()
+
+    clearTimeout(that.timer)
+
+    if (!that.moved) {
+      const dobuleclickTime = 300
+      // 模拟双击事件
+      if (time - that.upTime <= dobuleclickTime) {
+        that.dobuleClick()
+      }
+    }
+
+    this.upTime = time
 
     if (touches.length) {
       // pinch end
@@ -121,7 +136,6 @@ export default {
     }
     that.last.time = new Date().getTime()
     that.touchDelay = 3
-
     that.emit('dragstart', e)
   },
 
@@ -156,37 +170,34 @@ export default {
 
   dragend (e) {
     const that = this
+    if (!that.moved) return
 
-    if (!that.validation()) {
-      // 缓冲动画
-      const position = that.position
-      const vx = that.last.dis.x / that.last.dis.time
-      const vy = that.last.dis.y / that.last.dis.time
-      const speed = 0.4
+    const speed = 0.4
+    const position = that.position
+    const vx = that.last.dis.x / that.last.dis.time
+    const vy = that.last.dis.y / that.last.dis.time
+    let scale = position.scale
 
-      if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
-        const time = 300
-        let x = position.x + vx * time
-        let y = position.y + vy * time
-        const { isDraw, xpos, ypos } = that.checkBorder({ x, y }, position.scale, { x, y })
+    // 缓冲动画
+    if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
+      const time = 420
+      let x = position.x + vx * time
+      let y = position.y + vy * time
+      let type = 'easeOutCubic'
+      const result = that.validation({ x, y, scale })
 
-        if (isDraw) {
-          x = xpos + vx * 8
-          y = ypos + vy * 8
-        }
+      if (result.isDraw) {
+        x = result.xpos
+        y = result.ypos
+        scale = result.scale
+        type = 'easeOutBack'
+      }
 
-        that.animation = animate({
-          time: time * 2,
-          targets: [[position.x, x], [position.y, y]],
-          type: 'easeOutCubic',
-          running: target => {
-            that.setData({ x: target[0], y: target[1] })
-            that.draw()
-          },
-          end () {
-            that.validation()
-          }
-        })
+      that.animate(scale, x, y, { type, time: time * 2 })
+    } else {
+      const result = that.validation()
+      if (result.isDraw) {
+        that.animate(result.scale, result.xpos, result.ypos)
       }
     }
 
@@ -243,5 +254,22 @@ export default {
 
     that.scaleTo(point, that.position.scale * scaleChanged)
     that.emit('pinchmove', e)
+  },
+
+  dobuleClick () {
+    const that = this
+    const rect = that.canvas.getBoundingClientRect()
+    const { maxScale, minScale } = that.options
+    const point = {
+      x: (that.last.move.x - rect.left) * that.canvasRatio,
+      y: (that.last.move.y - rect.top) * that.canvasRatio
+    }
+    let scale = that.position.scale
+    if (scale < maxScale) {
+      scale = maxScale
+    } else {
+      scale = minScale
+    }
+    that.scaleTo(point, scale, true, true)
   }
 }

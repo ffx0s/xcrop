@@ -28,8 +28,8 @@
         crop.hide()
       })
       crop.on('confirm', function (crop) {
-        createImage(crop.get({ width: 300 }))
         createImage(crop.get())
+        createImage(crop.get({ width: 300 }))
         crop.hide()
       })
 
