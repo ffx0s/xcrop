@@ -14,6 +14,9 @@ const cancelAnimationFrame =
     clearTimeout(id)
   }
 
+win.requestAnimationFrame = requestAnimationFrame
+win.cancelAnimationFrame = cancelAnimationFrame
+
 /**
  * 获取当前时间戳
  * @returns {Number} 时间戳

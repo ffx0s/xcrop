@@ -5,7 +5,7 @@ export function initRender (canvas) {
   canvas.canvas = createCanvas(canvas.options.width, canvas.options.height)
   canvas.context = canvas.canvas.getContext('2d')
 
-  canvas.renderAction = () => {
+  canvas.renderAction = function () {
     canvas.bindEvent()
     canvas.render()
 

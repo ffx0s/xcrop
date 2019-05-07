@@ -1,47 +1,49 @@
 import './crop.css'
 import template from './template'
 import Canvas from '../canvas/index'
-import { VIEW_WIDTH, VIEW_HEIGHT, CROP_HIDE, BORDER_SIZE } from '../constants'
 import { delay, extendDeep, makeArray, objectAssign, isNumber } from '../util/shared'
 import { dataURItoBlob, URL } from '../util/file'
 import { antialisScale, drawImage } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
-import { setStyle, setClass, isInPage, addListener } from '../util/element'
+import { setStyle, setClass, isInPage, addListener, removeListener } from '../util/element'
 
-/**
- * 默认选项
- */
-
-const defaults = {
-  // 插入节点
-  el: document.body,
-  // 容器宽度
-  viewWidth: VIEW_WIDTH,
-  // 容器高度
-  viewHeight: VIEW_HEIGHT,
-  // 裁剪框大小
-  border: {
-    width: BORDER_SIZE,
-    height: BORDER_SIZE
-  },
-  // 允许缩放的最大比例
-  maxScale: 2,
-  // 画布比例
-  canvasRatio: 2,
-  // 按钮文字
-  confirmText: '确认',
-  cancleText: '取消',
-  showClass: 'crop-slide-left',
-  hideClass: 'crop-slide-bottom'
-}
+const viewWidth = document.documentElement.clientWidth
+const viewHeight = document.documentElement.clientHeight
+const borderSize = Math.min(viewWidth, viewHeight) * 0.9
 
 class Crop {
+  // 默认选项
+  static defaults = {
+    // 容器宽度
+    viewWidth,
+    // 容器高度
+    viewHeight,
+    // 插入节点
+    el: document.body,
+    // 裁剪框大小
+    border: {
+      width: borderSize,
+      height: borderSize
+    },
+    // 允许缩放的最大比例
+    maxScale: 2,
+    // 画布比例
+    canvasRatio: 2,
+    // 按钮文字
+    confirmText: '确认',
+    cancleText: '取消',
+    // 显示隐藏类名
+    beforeShowClass: 'crop-slide-to-right',
+    beforeHideClass: 'crop-slide-to-bottom'
+  }
+
   constructor (options = {}) {
     const crop = this
 
-    crop.options = extendDeep({}, defaults, options)
+    crop.options = extendDeep({}, Crop.defaults, options)
     crop.border = crop.options.border
     crop.elements = {}
+    crop.isHide = true
 
     crop.init()
   }
@@ -54,16 +56,16 @@ class Crop {
 
   initElement () {
     const crop = this
-    const { showClass, viewWidth, viewHeight } = crop.options
+    const { viewWidth, viewHeight } = crop.options
     const element = document.createElement('div')
 
     element.innerHTML = template(crop.options)
 
     // 取出带有标记的节点元素
     makeArray(element.querySelectorAll('*')).forEach(el => {
-      const value = el.getAttribute('data-el')
-      if (value) {
-        crop.elements[value] = el
+      const name = el.getAttribute('data-el')
+      if (name) {
+        crop.elements[name] = el
       }
     })
 
@@ -71,7 +73,7 @@ class Crop {
       width: viewWidth,
       height: viewHeight
     })
-    setClass(crop.elements.container, {add: showClass})
+    setClass(crop.elements.container, {add: Crop.CROP_HIDE_CLASS})
 
     crop.setBorder(crop.border)
   }
@@ -83,7 +85,7 @@ class Crop {
       maxScale,
       canvasRatio,
       el: crop.elements.container,
-      touchTarget: crop.elements.container,
+      touchTarget: crop.elements.zoom,
       width: viewWidth * canvasRatio,
       height: viewHeight * canvasRatio,
       offset: crop.canvasOffset
@@ -94,16 +96,22 @@ class Crop {
 
   initEvent () {
     const crop = this
+    crop.onClick = crop.onClick.bind(crop)
+    crop.transitionend = crop.transitionend.bind(crop)
 
-    crop.canvas.on('loaded', crop.show.bind(crop))
     crop.canvas.on('loaded', crop.render.bind(crop), true)
-
-    addListener(crop.elements.container, 'touchstart', (crop.touchstart = crop.touchstart.bind(crop)))
+    crop.canvas.on('loaded', crop.show.bind(crop))
+    addListener(crop.elements.container, 'click', crop.onClick)
+    addListener(crop.elements.container, 'transitionend', crop.transitionend)
+    addListener(crop.elements.container, 'webkitTransitionEnd', crop.transitionend)
   }
 
-  touchstart (e) {
-    const eventName = e.target.getAttribute('data-touchstart')
+  load (target) {
+    this.canvas.load(target)
+  }
 
+  onClick (e) {
+    const eventName = e.target.getAttribute('data-click')
     eventName && this[eventName] && this[eventName]()
   }
 
@@ -113,6 +121,18 @@ class Crop {
 
   onConfirm () {
     this.emit('confirm', this)
+  }
+
+  transitionend (e) {
+    const crop = this
+    const target = e.target
+
+    if (target === crop.elements.container && crop.isHide) {
+      setClass(target, {
+        add: Crop.CROP_HIDE_CLASS,
+        remove: crop.options.beforeHideClass
+      })
+    }
   }
 
   render () {
@@ -184,14 +204,14 @@ class Crop {
   }
 
   /**
-   * 设置裁剪框样式
-   * @param {Object} border 位置大小
+   * 设置裁剪框大小
+   * @param {Object} border 位置大小{ x, y, width, height }
    */
   setBorder (border) {
     const crop = this
     const { x, y, width, height } = crop.checkBorder(border)
     const { canvasRatio, viewWidth, viewHeight } = crop.options
-    const maskProps = {
+    const maskStyle = {
       width,
       height,
       left: x - viewWidth,
@@ -209,7 +229,7 @@ class Crop {
       crop.canvas.options.offset = offset
     }
 
-    setStyle(crop.elements.mask, maskProps)
+    setStyle(crop.elements.mask, maskStyle)
 
     crop.border = border
     crop.canvasOffset = offset
@@ -219,16 +239,12 @@ class Crop {
     const { x, y, width, height } = border
     const { viewWidth, viewHeight } = this.options
 
-    border.width = isNumber(width) ? width : BORDER_SIZE
-    border.height = isNumber(height) ? height : BORDER_SIZE
+    border.width = isNumber(width) ? width : viewWidth
+    border.height = isNumber(height) ? height : viewHeight
     border.x = isNumber(x) ? x : (viewWidth - border.width) / 2
     border.y = isNumber(y) ? y : (viewHeight - border.height) / 2
 
     return border
-  }
-
-  load (target) {
-    this.canvas.load(target)
   }
 
   on () {
@@ -244,38 +260,45 @@ class Crop {
   }
 
   show (transition) {
-    const el = this.elements.container
-    const duration = transition === false ? 0 : 30
-
-    // 加定时器保证在其他任务完成之后执行
-    delay(() => {
-      setClass(el, {
-        remove: CROP_HIDE
-      })
-      delay(() => {
+    const crop = this
+    if (!crop.isHide) return
+    win.requestAnimationFrame(() => {
+      const el = crop.elements.container
+      const options = crop.options
+      if (transition === false) {
         setClass(el, {
-          remove: this.options.showClass
+          remove: Crop.CROP_HIDE_CLASS
         })
-      }, duration)
+      } else {
+        setClass(el, {
+          remove: Crop.CROP_HIDE_CLASS,
+          add: options.beforeShowClass
+        })
+        delay(() => {
+          setClass(el, {
+            remove: options.beforeShowClass
+          })
+        })
+      }
+      crop.isHide = false
     })
   }
 
   hide (transition) {
     const crop = this
-    const el = crop.elements.container
-    const duration = transition === false ? 0 : 300
-
-    // 加定时器保证在其他任务完成之后执行
-    delay(() => {
-      setClass(el, {
-        add: crop.options.hideClass
-      })
-      delay(() => {
+    if (crop.isHide) return
+    win.requestAnimationFrame(() => {
+      const el = crop.elements.container
+      if (transition === false) {
         setClass(el, {
-          add: [CROP_HIDE, crop.options.showClass],
-          remove: crop.options.hideClass
+          add: Crop.CROP_HIDE_CLASS
         })
-      }, duration)
+      } else {
+        setClass(el, {
+          add: crop.options.beforeHideClass
+        })
+      }
+      crop.isHide = true
     })
   }
 
@@ -285,7 +308,9 @@ class Crop {
 
     crop.canvas.destroy()
 
-    container.removeEventListener('touchstart', crop.touchstart)
+    removeListener(container, 'click', crop.onClick)
+    removeListener(container, 'transitionend', crop.transitionend)
+    removeListener(container, 'webkitTransitionEnd', crop.transitionend)
 
     if (isInPage(container)) {
       crop.options.el.removeChild(container)
@@ -294,6 +319,7 @@ class Crop {
 
   static imageToCanvas = imageToCanvas
   static Canvas = Canvas
+  static CROP_HIDE_CLASS = 'crop-hide'
 }
 
 export default Crop

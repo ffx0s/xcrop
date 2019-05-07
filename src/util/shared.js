@@ -127,3 +127,21 @@ export function makeArray (object) {
 export function firstToUpperCase (text) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
+
+/**
+ * raf 节流
+ * @param {Function} fn 执行函数
+ */
+export function throttle (fn) {
+  let ticking = false
+  return function requestTick () {
+    if (!ticking) {
+      const args = arguments
+      win.requestAnimationFrame(() => {
+        fn.apply(this, args)
+        ticking = false
+      })
+      ticking = true
+    }
+  }
+}

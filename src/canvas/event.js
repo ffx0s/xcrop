@@ -1,9 +1,9 @@
-import { delay, makeArray, noop } from '../util/shared'
+import { makeArray, noop, throttle } from '../util/shared'
 import { addListener } from '../util/element'
-import { getTouchCenter, getScale } from './helper'
+import { getTouchCenter, getScale, getPoints, mouseMove } from './helper'
 
 export function initEvent (canvas) {
-  canvas.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend']
+  canvas.eventList = ['mousewheel', 'mousedown', 'touchstart', 'touchmove', 'touchend']
   // 最后一次事件操作的参数
   canvas.last = {
     point: { x: 0, y: 0 },
@@ -15,6 +15,9 @@ export function initEvent (canvas) {
   canvas.animation = { stop: noop }
   canvas.wheeling = false
   canvas.upTime = 0
+  canvas.dragmove = throttle(canvas.dragmove)
+  canvas.pinchmove = throttle(canvas.pinchmove)
+  canvas.mousescroll = throttle(canvas.mousescroll)
 }
 
 export default {
@@ -38,37 +41,46 @@ export default {
 
   mousewheel (e) {
     e.preventDefault()
-
-    const that = this
-
-    if (that.wheeling) return
-
-    // 降低滚动频率
-    delay(() => {
-      that.wheeling = false
-    }, 30)
-
-    that.wheeling = true
-
     const STEP = 0.99
     const factor = e.deltaY
     const scaleChanged = Math.pow(STEP, factor)
+    this.mousescroll(e, scaleChanged)
+  },
 
-    that.rect = that.canvas.getBoundingClientRect()
+  mousescroll (e, scaleChanged) {
+    const that = this
+    if (!that.rect) {
+      that.rect = that.canvas.getBoundingClientRect()
+    }
     that.last.point = {
       x: (e.clientX - that.rect.left) * that.canvasRatio,
       y: (e.clientY - that.rect.top) * that.canvasRatio
     }
-
     that.scaleTo(that.last.point, that.position.scale * scaleChanged)
+
+    clearTimeout(that.mouseScrollTimer)
+    that.mouseScrollTimer = setTimeout(() => {
+      const result = that.validation()
+      if (result.isDraw) {
+        that.animate(result.scale, result.xpos, result.ypos)
+      }
+    }, 200)
+
     that.emit('mousewheel', e)
+  },
+
+  mousedown (e) {
+    e.preventDefault()
+    const that = this
+    that.touchstart(e)
+    mouseMove(that.touchmove, that.touchend)
   },
 
   touchstart (e) {
     e.preventDefault()
 
     const that = this
-    const touches = e.touches
+    const touches = getPoints(e)
 
     that.moved = false
     that.animation.stop()
@@ -84,7 +96,7 @@ export default {
     e.preventDefault()
 
     const that = this
-    const touches = e.touches
+    const touches = getPoints(e)
     that.moved = true
 
     if (touches.length === 2) {
@@ -96,10 +108,8 @@ export default {
 
   touchend (e) {
     const that = this
-    const touches = e.touches
+    const touches = e.touches || []
     const time = Date.now()
-
-    clearTimeout(that.timer)
 
     if (!that.moved) {
       const dobuleclickTime = 300
@@ -109,7 +119,7 @@ export default {
       }
     }
 
-    this.upTime = time
+    that.upTime = time
 
     if (touches.length) {
       // pinch end
@@ -123,7 +133,7 @@ export default {
 
   dragstart (e) {
     const that = this
-    const touches = e.touches
+    const touches = getPoints(e)
 
     that.last.move = {
       x: touches[0].clientX,
@@ -141,7 +151,7 @@ export default {
 
   dragmove (e) {
     const that = this
-    const touches = e.touches
+    const touches = getPoints(e)
     const move = {
       x: touches[0].clientX,
       y: touches[0].clientY
@@ -172,7 +182,7 @@ export default {
     const that = this
     if (!that.moved) return
 
-    const speed = 0.4
+    const speed = 0.3
     const position = that.position
     const vx = that.last.dis.x / that.last.dis.time
     const vy = that.last.dis.y / that.last.dis.time
@@ -206,7 +216,8 @@ export default {
 
   pinchstart (e) {
     const that = this
-    const zoom = makeArray(e.touches).map(touch => {
+    const touches = getPoints(e)
+    const zoom = makeArray(touches).map(touch => {
       return { x: touch.clientX, y: touch.clientY }
     })
     const touchCenter = getTouchCenter(zoom)
@@ -224,7 +235,8 @@ export default {
 
   pinchmove (e) {
     const that = this
-    const zoom = makeArray(e.touches).map(touch => {
+    const touches = getPoints(e)
+    const zoom = makeArray(touches).map(touch => {
       return { x: touch.clientX, y: touch.clientY }
     })
     // 双指的中心点

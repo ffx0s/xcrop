@@ -2,16 +2,16 @@ import React, { Component } from 'react'
 import Crop from 'xcrop'
 
 const EVENTS = [
-  'cancle',       // 取消
-  'confirm',      // 确认
-  'loaded',       // 图片加载完成
-  'error',        // 图片加载出错
-  'dragstart',    // 单指按下
-  'dragmove',     // 单指拖动
-  'dragend',      // 单指拖动结束
-  'pinchstart',   // 双指按下
-  'pinchmove',    // 双指拖动
-  'pinchend'      // 双指拖动结束
+  'cancle', // 取消
+  'confirm', // 确认
+  'loaded', // 图片加载完成
+  'error', // 图片加载出错
+  'dragstart', // 单指按下
+  'dragmove', // 单指拖动
+  'dragend', // 单指拖动结束
+  'pinchstart', // 双指按下
+  'pinchmove', // 双指拖动
+  'pinchend' // 双指拖动结束
 ]
 
 export default class extends Component {

@@ -1,3 +1,5 @@
+import { addListener, removeListener } from '../util/element'
+
 function sum (a, b) {
   return a + b
 }
@@ -72,4 +74,18 @@ export function createCanvas (width, height) {
 
 export function toFixed (number, digits) {
   return +number.toFixed(digits)
+}
+
+export function mouseMove (moveFn, upFn, capture = false) {
+  function mouseup (event) {
+    upFn(event)
+    removeListener(document, 'mousemove', moveFn, { capture })
+    removeListener(document, 'mouseup', mouseup, { capture })
+  }
+  addListener(document, 'mousemove', moveFn, { passive: false, capture })
+  addListener(document, 'mouseup', mouseup, { capture })
+}
+
+export function getPoints (event) {
+  return event.touches ? event.touches : [event]
 }

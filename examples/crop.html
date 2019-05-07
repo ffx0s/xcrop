@@ -44,7 +44,8 @@
         var img = new Image()
         img.onload = function () {
           var div = document.createElement('div')
-          div.innerHTML = `<h2>${img.width}x${img.height}: </h2><img src="${src}" style="width: ${Math.min(img.width, 300)}px;">`
+          // ↓↓↓↓ div.innerHTML = `<h2>${img.width}x${img.height}: </h2><img src="${src}" style="width: ${Math.min(img.width, 300)}px;">`
+          div.innerHTML = "<h2>".concat(img.width, "x").concat(img.height, ": </h2><img src=\"").concat(src, "\" style=\"width: ").concat(Math.min(img.width, 300), "px;\">")
           document.body.appendChild(div)
         }
         img.src = src
@@ -59,9 +60,7 @@
       }
 
       document.getElementById('fileInput').addEventListener('change', onChange)
-      document.getElementById('destroyBtn').addEventListener('touchstart', destroy)
-
-      window.crop = crop
+      document.getElementById('destroyBtn').addEventListener('click', destroy)
     }
   </script>
 
