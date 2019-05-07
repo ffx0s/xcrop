@@ -4,8 +4,8 @@
 
 > 移动端裁剪插件，原生 JavaScript 实现，无依赖，支持 Vue 2.0，React。
 
-## 例子
-[GIF](http://static.webfed.cn/o_1c67cjdgr10g81afk1bsd1qvsgjn9.gif)  
+## Demo
+[Demo](https://ffx0s.github.io/xcrop/examples/crop.html)  
 
 
 <img src="http://static.webfed.cn/o_1c8fs4vpu8sk1us8uisfge1n769.png" />  
@@ -166,8 +166,8 @@ export default class App extends Component {
 |maxScale|false|Number|2|允许缩放的最大比例|
 |confirmText|false|String|确认|确认按钮文字|
 |cancleText|false|String|取消|取消按钮文字|
-|showClass|false|String|crop-slide-left|动画类名：crop-slide-*, *: left/right/top/bottom|
-|hideClass|false|String|crop-slide-bottom|动画类名，同上|
+|beforeShowClass|false|String|crop-slide-to-left|显示的动画类名，会在显示之前添加，之后移除，可选：crop-slide-to*, *: left/right/top/bottom|
+|beforeHideClass|false|String|crop-slide-to-bottom|隐藏的动画类名，会在隐藏之前添加，参数同上|
 
 
 ## 实例方法  
