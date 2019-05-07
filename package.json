@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "./node_modules/.bin/rollup -c -w",
     "build": "NODE_ENV=production ./node_modules/.bin/rollup -c",
-    "release": "npm run build & npm version patch & npm publish"
+    "release": "npm version patch & ./node_modules/.bin/rollup -c & npm run build & npm publish"
   },
   "keywords": [
     "crop",
