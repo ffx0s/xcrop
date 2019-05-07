@@ -23,20 +23,18 @@ export function initActions (canvas) {
 
 export default {
   load (target, callback) {
-    const that = this
-
     const successCallback = canvas => {
-      that.initImageData(canvas)
-      that.draw()
-      that.renderAction()
+      this.initImageData(canvas)
+      this.draw()
+      this.renderAction()
 
       delay(() => {
         callback && callback()
-        that.emit('loaded', that)
+        this.emit('loaded', this)
       })
     }
     const errorCallback = error => {
-      that.emit('error', error)
+      this.emit('error', error)
     }
 
     imageToCanvas(target, successCallback, { errorCallback })

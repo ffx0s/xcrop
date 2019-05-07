@@ -1,4 +1,4 @@
-import { isString, isNumber, firstToUpperCase } from './shared'
+import { isString, isNumber, firstToUpperCase, objectAssign } from './shared'
 
 /**
  * 渲染样式
@@ -53,16 +53,12 @@ export function setStyle (el, css) {
 
 const notwhite = /\S+/g
 
-/**
- * 设置 className
- * @param {Element} el 节点
- * @param {Object} options 选项
- */
+// 设置类名
 export const setClass = (() => {
   /**
-   * 添加 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
+   * 添加新类名
+   * @param {String} curClassName 当前类名
+   * @param {String} className 新类名
    */
   function add (curClassName, className) {
     className = Array.isArray(className)
@@ -73,9 +69,9 @@ export const setClass = (() => {
   }
 
   /**
-   * 移除 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
+   * 移除类名
+   * @param {String} curClassName 当前类名
+   * @param {String} className 需要移除的类名
    */
   function remove (curClassName, className) {
     const classNameArr = Array.isArray(className)
@@ -89,6 +85,13 @@ export const setClass = (() => {
     return curClassName.trim()
   }
 
+  /**
+   * 设置 className
+   * @param {Element} el 目标节点
+   * @param {Object} options 选项
+   * @property {String} options.remove 移除的类名
+   * @property {String} options.add 增加的类名
+   */
   return function (el, options) {
     let className = el.className
     if (options.remove) {
@@ -102,19 +105,44 @@ export const setClass = (() => {
 })()
 
 // 是否支持 passive 属性
-export let supportsPassive = false
+let supportsPassive = () => {
+  let support = false
+  try {
+    const options = Object.defineProperty({}, 'passive', {
+      get: function () {
+        support = true
+        supportsPassive = () => true
+        return true
+      }
+    })
+    win.addEventListener('testPassive', null, options)
+    win.removeEventListener('testPassive', null, options)
+  } catch (err) {
+    supportsPassive = () => false
+  }
+  return support
+}
 
-try {
-  const opts = Object.defineProperty({}, 'passive', {
-    get: function () {
-      supportsPassive = true
-    }
-  })
-  win.addEventListener('testPassive', null, opts)
-  win.removeEventListener('testPassive', null, opts)
-} catch (e) {}
+export function addListener (element, type, fn, options = { capture: false }) {
+  const defaultOptions = {
+    capture: false,
+    passive: true,
+    once: false
+  }
+  element.addEventListener(
+    type,
+    fn,
+    supportsPassive()
+      ? objectAssign(defaultOptions, options)
+      : options.capture
+  )
+}
 
-// 添加事件
-export function addListener (element, type, fn, options) {
-  element.addEventListener(type, fn, supportsPassive ? (options || { passive: true }) : false)
+export function removeListener (
+  element,
+  type,
+  fn,
+  options = { capture: false }
+) {
+  element.removeEventListener(type, fn, options.capture)
 }
