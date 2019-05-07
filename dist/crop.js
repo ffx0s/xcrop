@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.4
+   * @name xcrop v1.1.6
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -40,7 +40,7 @@ function styleInject(css, ref) {
   }
 }
 
-var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:1;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s}.crop-container.crop-hide{display:none}.crop-container.crop-slide-left{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-container.crop-slide-right{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-container.crop-slide-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-container.crop-slide-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-box-sizing:content-box;box-sizing:content-box}.crop-mask:before{position:absolute;left:0;top:0;float:left;content:\"\";width:200%;height:200%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-transform:scale(.5);transform:scale(.5);-webkit-transform-origin:0 0;transform-origin:0 0}.crop-handle{position:absolute;bottom:0;left:0;width:100%;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0)}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
+var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:4;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop-hide{display:none}.crop-slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop-mask:before{top:0;float:left;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-transform-origin:0 0;transform-origin:0 0}.crop-handle,.crop-mask:before{position:absolute;left:0;width:100%}.crop-handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
 styleInject(css);
 
 function template(options) {
@@ -48,15 +48,8 @@ function template(options) {
       confirmText = options.confirmText;
 
 
-  return '<div class="crop-container crop-hide" data-el="container">' + '<div class="crop-mask" data-el="mask"></div>' + '<div class="crop-handle" data-el="handle">' + ('<div class="crop-cancle" data-el="cancle" data-touchstart="onCancle">' + cancleText + '</div>') + ('<div class="crop-confirm" data-el="confirm" data-touchstart="onConfirm">' + confirmText + '</div>') + '</div>' + '</div>';
+  return '<div class="crop-container" data-el="container">' + '<div class="crop-zoom" data-el="zoom"></div>' + '<div class="crop-mask" data-el="mask"></div>' + '<div class="crop-handle" data-el="handle">' + ('<div class="crop-cancle" data-el="cancle" data-click="onCancle">' + cancleText + '</div>') + ('<div class="crop-confirm" data-el="confirm" data-click="onConfirm">' + confirmText + '</div>') + '</div>' + '</div>';
 }
-
-var VIEW_WIDTH = document.documentElement.clientWidth;
-var VIEW_HEIGHT = document.documentElement.clientHeight;
-
-var BORDER_SIZE = Math.min(VIEW_WIDTH, VIEW_HEIGHT) * 0.9;
-
-var CROP_HIDE = 'crop-hide';
 
 var toString = Object.prototype.toString;
 var slice = Array.prototype.slice;
@@ -188,6 +181,157 @@ function firstToUpperCase(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/**
+ * raf 节流
+ * @param {Function} fn 执行函数
+ */
+function throttle(fn) {
+  var ticking = false;
+  return function requestTick() {
+    var _this = this;
+
+    if (!ticking) {
+      var args = arguments;
+      win.requestAnimationFrame(function () {
+        fn.apply(_this, args);
+        ticking = false;
+      });
+      ticking = true;
+    }
+  };
+}
+
+/**
+ * 渲染样式
+ * @param {String} cssText css样式
+ * @param {Element} elem css插入节点
+ * @returns {Element} 返回 style element
+ */
+
+
+/**
+ * 获取 HTML 节点
+ * @param {String} selector 选择器
+ * @returns {Element} HTML节点
+ */
+function $(selector) {
+  return isString(selector) ? document.querySelector(selector) : selector;
+}
+
+/**
+ * 判断节点是否存在页面上
+ * @param {Element} node 节点
+ */
+function isInPage(node) {
+  return document.body.contains(node);
+}
+
+/**
+ * 设置CSS样式
+ * @param {Object} el 节点
+ * @param {Object} css 样式
+ */
+function setStyle(el, css) {
+  for (var prop in css) {
+    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
+
+    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
+      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
+    } else {
+      el.style[prop] = value;
+    }
+  }
+}
+
+var notwhite = /\S+/g;
+
+// 设置类名
+var setClass = function () {
+  /**
+   * 添加新类名
+   * @param {String} curClassName 当前类名
+   * @param {String} className 新类名
+   */
+  function add(curClassName, className) {
+    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
+
+    return curClassName === '' ? className : curClassName + ' ' + className;
+  }
+
+  /**
+   * 移除类名
+   * @param {String} curClassName 当前类名
+   * @param {String} className 需要移除的类名
+   */
+  function remove(curClassName, className) {
+    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
+
+    classNameArr.forEach(function (name) {
+      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
+    });
+
+    return curClassName.trim();
+  }
+
+  /**
+   * 设置 className
+   * @param {Element} el 目标节点
+   * @param {Object} options 选项
+   * @property {String} options.remove 移除的类名
+   * @property {String} options.add 增加的类名
+   */
+  return function (el, options) {
+    var className = el.className;
+    if (options.remove) {
+      className = remove(className, options.remove);
+    }
+    if (options.add) {
+      className = add(className, options.add);
+    }
+    el.className = className;
+  };
+}();
+
+// 是否支持 passive 属性
+var _supportsPassive = function supportsPassive() {
+  var support = false;
+  try {
+    var options = Object.defineProperty({}, 'passive', {
+      get: function get() {
+        support = true;
+        _supportsPassive = function supportsPassive() {
+          return true;
+        };
+        return true;
+      }
+    });
+    win.addEventListener('testPassive', null, options);
+    win.removeEventListener('testPassive', null, options);
+  } catch (err) {
+    _supportsPassive = function supportsPassive() {
+      return false;
+    };
+  }
+  return support;
+};
+
+function addListener(element, type, fn) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { capture: false };
+
+  var defaultOptions = {
+    capture: false,
+    passive: true,
+    once: false
+  };
+  element.addEventListener(type, fn, _supportsPassive() ? objectAssign(defaultOptions, options) : options.capture);
+}
+
+function removeListener(element, type, fn) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { capture: false };
+
+  element.removeEventListener(type, fn, options.capture);
+}
+
 function sum(a, b) {
   return a + b;
 }
@@ -268,6 +412,22 @@ function toFixed(number, digits) {
   return +number.toFixed(digits);
 }
 
+function mouseMove(moveFn, upFn) {
+  var capture = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+  function mouseup(event) {
+    upFn(event);
+    removeListener(document, 'mousemove', moveFn, { capture: capture });
+    removeListener(document, 'mouseup', mouseup, { capture: capture });
+  }
+  addListener(document, 'mousemove', moveFn, { passive: false, capture: capture });
+  addListener(document, 'mouseup', mouseup, { capture: capture });
+}
+
+function getPoints(event) {
+  return event.touches ? event.touches : [event];
+}
+
 function initRender(canvas) {
   canvas.canvas = createCanvas(canvas.options.width, canvas.options.height);
   canvas.context = canvas.canvas.getContext('2d');
@@ -297,106 +457,8 @@ var render$1 = {
   }
 };
 
-/**
- * 获取 HTML 节点
- * @param {String} selector 选择器
- * @returns {Element} HTML节点
- */
-function $(selector) {
-  return isString(selector) ? document.querySelector(selector) : selector;
-}
-
-/**
- * 判断节点是否存在页面上
- * @param {Element} node 节点
- */
-function isInPage(node) {
-  return document.body.contains(node);
-}
-
-/**
- * 设置CSS样式
- * @param {Object} el 节点
- * @param {Object} css 样式
- */
-function setStyle(el, css) {
-  for (var prop in css) {
-    var value = isNumber(css[prop]) ? css[prop] + 'px' : css[prop];
-
-    if (['transform', 'transformOrigin', 'transition'].indexOf(prop) !== -1) {
-      el.style['Webkit' + firstToUpperCase(prop)] = el.style[prop] = value;
-    } else {
-      el.style[prop] = value;
-    }
-  }
-}
-
-var notwhite = /\S+/g;
-
-/**
- * 设置 className
- * @param {Element} el 节点
- * @param {Object} options 选项
- */
-var setClass = function () {
-  /**
-   * 添加 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function add(curClassName, className) {
-    className = Array.isArray(className) ? className.join(' ') : className.match(notwhite).join(' ');
-
-    return curClassName === '' ? className : curClassName + ' ' + className;
-  }
-
-  /**
-   * 移除 className
-   * @param {String} curClassName 当前类
-   * @param {String} className 新类
-   */
-  function remove(curClassName, className) {
-    var classNameArr = Array.isArray(className) ? className : className.match(notwhite);
-
-    classNameArr.forEach(function (name) {
-      curClassName = curClassName.replace(new RegExp('' + name, 'g'), '');
-    });
-
-    return curClassName.trim();
-  }
-
-  return function (el, options) {
-    var className = el.className;
-    if (options.remove) {
-      className = remove(className, options.remove);
-    }
-    if (options.add) {
-      className = add(className, options.add);
-    }
-    el.className = className;
-  };
-}();
-
-// 是否支持 passive 属性
-var supportsPassive = false;
-
-try {
-  var opts = Object.defineProperty({}, 'passive', {
-    get: function get() {
-      supportsPassive = true;
-    }
-  });
-  win.addEventListener('testPassive', null, opts);
-  win.removeEventListener('testPassive', null, opts);
-} catch (e) {}
-
-// 添加事件
-function addListener(element, type, fn, options) {
-  element.addEventListener(type, fn, supportsPassive ? options || { passive: true } : false);
-}
-
 function initEvent$1(canvas) {
-  canvas.eventList = ['mousewheel', 'touchstart', 'touchmove', 'touchend'];
+  canvas.eventList = ['mousewheel', 'mousedown', 'touchstart', 'touchmove', 'touchend'];
   // 最后一次事件操作的参数
   canvas.last = {
     point: { x: 0, y: 0 },
@@ -408,6 +470,9 @@ function initEvent$1(canvas) {
   canvas.animation = { stop: noop };
   canvas.wheeling = false;
   canvas.upTime = 0;
+  canvas.dragmove = throttle(canvas.dragmove);
+  canvas.pinchmove = throttle(canvas.pinchmove);
+  canvas.mousescroll = throttle(canvas.mousescroll);
 }
 
 var events = {
@@ -429,36 +494,43 @@ var events = {
   },
   mousewheel: function mousewheel(e) {
     e.preventDefault();
-
-    var that = this;
-
-    if (that.wheeling) return;
-
-    // 降低滚动频率
-    delay(function () {
-      that.wheeling = false;
-    }, 30);
-
-    that.wheeling = true;
-
     var STEP = 0.99;
     var factor = e.deltaY;
     var scaleChanged = Math.pow(STEP, factor);
-
-    that.rect = that.canvas.getBoundingClientRect();
+    this.mousescroll(e, scaleChanged);
+  },
+  mousescroll: function mousescroll(e, scaleChanged) {
+    var that = this;
+    if (!that.rect) {
+      that.rect = that.canvas.getBoundingClientRect();
+    }
     that.last.point = {
       x: (e.clientX - that.rect.left) * that.canvasRatio,
       y: (e.clientY - that.rect.top) * that.canvasRatio
     };
-
     that.scaleTo(that.last.point, that.position.scale * scaleChanged);
+
+    clearTimeout(that.mouseScrollTimer);
+    that.mouseScrollTimer = setTimeout(function () {
+      var result = that.validation();
+      if (result.isDraw) {
+        that.animate(result.scale, result.xpos, result.ypos);
+      }
+    }, 200);
+
     that.emit('mousewheel', e);
+  },
+  mousedown: function mousedown(e) {
+    e.preventDefault();
+    var that = this;
+    that.touchstart(e);
+    mouseMove(that.touchmove, that.touchend);
   },
   touchstart: function touchstart(e) {
     e.preventDefault();
 
     var that = this;
-    var touches = e.touches;
+    var touches = getPoints(e);
 
     that.moved = false;
     that.animation.stop();
@@ -473,7 +545,7 @@ var events = {
     e.preventDefault();
 
     var that = this;
-    var touches = e.touches;
+    var touches = getPoints(e);
     that.moved = true;
 
     if (touches.length === 2) {
@@ -484,10 +556,8 @@ var events = {
   },
   touchend: function touchend(e) {
     var that = this;
-    var touches = e.touches;
+    var touches = e.touches || [];
     var time = Date.now();
-
-    clearTimeout(that.timer);
 
     if (!that.moved) {
       var dobuleclickTime = 300;
@@ -497,7 +567,7 @@ var events = {
       }
     }
 
-    this.upTime = time;
+    that.upTime = time;
 
     if (touches.length) {
       // pinch end
@@ -510,7 +580,7 @@ var events = {
   },
   dragstart: function dragstart(e) {
     var that = this;
-    var touches = e.touches;
+    var touches = getPoints(e);
 
     that.last.move = {
       x: touches[0].clientX,
@@ -527,7 +597,7 @@ var events = {
   },
   dragmove: function dragmove(e) {
     var that = this;
-    var touches = e.touches;
+    var touches = getPoints(e);
     var move = {
       x: touches[0].clientX,
       y: touches[0].clientY
@@ -557,7 +627,7 @@ var events = {
     var that = this;
     if (!that.moved) return;
 
-    var speed = 0.4;
+    var speed = 0.3;
     var position = that.position;
     var vx = that.last.dis.x / that.last.dis.time;
     var vy = that.last.dis.y / that.last.dis.time;
@@ -590,7 +660,8 @@ var events = {
   },
   pinchstart: function pinchstart(e) {
     var that = this;
-    var zoom = makeArray(e.touches).map(function (touch) {
+    var touches = getPoints(e);
+    var zoom = makeArray(touches).map(function (touch) {
       return { x: touch.clientX, y: touch.clientY };
     });
     var touchCenter = getTouchCenter(zoom);
@@ -607,7 +678,8 @@ var events = {
   },
   pinchmove: function pinchmove(e) {
     var that = this;
-    var zoom = makeArray(e.touches).map(function (touch) {
+    var touches = getPoints(e);
+    var zoom = makeArray(touches).map(function (touch) {
       return { x: touch.clientX, y: touch.clientY };
     });
     // 双指的中心点
@@ -896,6 +968,9 @@ var requestAnimationFrame = win.requestAnimationFrame || win.webkitRequestAnimat
 var cancelAnimationFrame = win.cancelAnimationFrame || function (id) {
   clearTimeout(id);
 };
+
+win.requestAnimationFrame = requestAnimationFrame;
+win.cancelAnimationFrame = cancelAnimationFrame;
 
 /**
  * 获取当前时间戳
@@ -1480,20 +1555,20 @@ function initActions(canvas) {
 
 var actions = {
   load: function load(target, callback) {
-    var that = this;
+    var _this = this;
 
     var successCallback = function successCallback(canvas) {
-      that.initImageData(canvas);
-      that.draw();
-      that.renderAction();
+      _this.initImageData(canvas);
+      _this.draw();
+      _this.renderAction();
 
       delay(function () {
         callback && callback();
-        that.emit('loaded', that);
+        _this.emit('loaded', _this);
       });
     };
     var errorCallback = function errorCallback(error) {
-      that.emit('error', error);
+      _this.emit('error', error);
     };
 
     imageToCanvas(target, successCallback, { errorCallback: errorCallback });
@@ -1867,25 +1942,6 @@ var EventEmitter = function () {
   return EventEmitter;
 }();
 
-var defaults$1 = {
-  el: document.body,
-  // canvas宽度
-  width: VIEW_WIDTH * 2,
-  // canvas高度
-  height: VIEW_HEIGHT * 2,
-  // 最大缩放比例
-  maxScale: 2,
-  // touch事件绑定对象，默认为canvas
-  touchTarget: null,
-  // canvas位于容器的偏移量
-  offset: {
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0
-  }
-};
-
 var Canvas = function (_EventEmitter) {
   inherits(Canvas, _EventEmitter);
 
@@ -1901,10 +1957,12 @@ var Canvas = function (_EventEmitter) {
       options.el = $(options.el);
     }
 
-    that.options = extendDeep({}, defaults$1, options);
+    that.options = extendDeep({}, Canvas.defaults, options);
     that.init();
     return _this;
   }
+  // 默认选项
+
 
   createClass(Canvas, [{
     key: 'init',
@@ -1922,6 +1980,24 @@ var Canvas = function (_EventEmitter) {
 // 添加原型方法
 
 
+Canvas.defaults = {
+  el: document.body,
+  // canvas宽度
+  width: document.documentElement.clientWidth * 2,
+  // canvas高度
+  height: document.documentElement.clientHeight * 2,
+  // 最大缩放比例
+  maxScale: 2,
+  // touch事件绑定对象，默认为canvas
+  touchTarget: null,
+  // canvas位于容器的偏移量
+  offset: {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0
+  }
+};
 objectAssign(Canvas.prototype, render$1, events, actions, validation$1);
 
 /**
@@ -1997,28 +2073,9 @@ function drawImage(target, sx, sy, swidth, sheight, x, y, width, height) {
   return canvas;
 }
 
-var defaults$$1 = {
-  // 插入节点
-  el: document.body,
-  // 容器宽度
-  viewWidth: VIEW_WIDTH,
-  // 容器高度
-  viewHeight: VIEW_HEIGHT,
-  // 裁剪框大小
-  border: {
-    width: BORDER_SIZE,
-    height: BORDER_SIZE
-  },
-  // 允许缩放的最大比例
-  maxScale: 2,
-  // 画布比例
-  canvasRatio: 2,
-  // 按钮文字
-  confirmText: '确认',
-  cancleText: '取消',
-  showClass: 'crop-slide-left',
-  hideClass: 'crop-slide-bottom'
-};
+var viewWidth = document.documentElement.clientWidth;
+var viewHeight = document.documentElement.clientHeight;
+var borderSize = Math.min(viewWidth, viewHeight) * 0.9;
 
 var Crop = function () {
   function Crop() {
@@ -2027,12 +2084,15 @@ var Crop = function () {
 
     var crop = this;
 
-    crop.options = extendDeep({}, defaults$$1, options);
+    crop.options = extendDeep({}, Crop.defaults, options);
     crop.border = crop.options.border;
     crop.elements = {};
+    crop.isHide = true;
 
     crop.init();
   }
+  // 默认选项
+
 
   createClass(Crop, [{
     key: 'init',
@@ -2046,7 +2106,6 @@ var Crop = function () {
     value: function initElement() {
       var crop = this;
       var _crop$options = crop.options,
-          showClass = _crop$options.showClass,
           viewWidth = _crop$options.viewWidth,
           viewHeight = _crop$options.viewHeight;
 
@@ -2056,9 +2115,9 @@ var Crop = function () {
 
       // 取出带有标记的节点元素
       makeArray(element.querySelectorAll('*')).forEach(function (el) {
-        var value = el.getAttribute('data-el');
-        if (value) {
-          crop.elements[value] = el;
+        var name = el.getAttribute('data-el');
+        if (name) {
+          crop.elements[name] = el;
         }
       });
 
@@ -2066,7 +2125,7 @@ var Crop = function () {
         width: viewWidth,
         height: viewHeight
       });
-      setClass(crop.elements.container, { add: showClass });
+      setClass(crop.elements.container, { add: Crop.CROP_HIDE_CLASS });
 
       crop.setBorder(crop.border);
     }
@@ -2084,7 +2143,7 @@ var Crop = function () {
         maxScale: maxScale,
         canvasRatio: canvasRatio,
         el: crop.elements.container,
-        touchTarget: crop.elements.container,
+        touchTarget: crop.elements.zoom,
         width: viewWidth * canvasRatio,
         height: viewHeight * canvasRatio,
         offset: crop.canvasOffset
@@ -2096,17 +2155,24 @@ var Crop = function () {
     key: 'initEvent',
     value: function initEvent() {
       var crop = this;
+      crop.onClick = crop.onClick.bind(crop);
+      crop.transitionend = crop.transitionend.bind(crop);
 
-      crop.canvas.on('loaded', crop.show.bind(crop));
       crop.canvas.on('loaded', crop.render.bind(crop), true);
-
-      addListener(crop.elements.container, 'touchstart', crop.touchstart = crop.touchstart.bind(crop));
+      crop.canvas.on('loaded', crop.show.bind(crop));
+      addListener(crop.elements.container, 'click', crop.onClick);
+      addListener(crop.elements.container, 'transitionend', crop.transitionend);
+      addListener(crop.elements.container, 'webkitTransitionEnd', crop.transitionend);
     }
   }, {
-    key: 'touchstart',
-    value: function touchstart(e) {
-      var eventName = e.target.getAttribute('data-touchstart');
-
+    key: 'load',
+    value: function load(target) {
+      this.canvas.load(target);
+    }
+  }, {
+    key: 'onClick',
+    value: function onClick(e) {
+      var eventName = e.target.getAttribute('data-click');
       eventName && this[eventName] && this[eventName]();
     }
   }, {
@@ -2118,6 +2184,19 @@ var Crop = function () {
     key: 'onConfirm',
     value: function onConfirm() {
       this.emit('confirm', this);
+    }
+  }, {
+    key: 'transitionend',
+    value: function transitionend(e) {
+      var crop = this;
+      var target = e.target;
+
+      if (target === crop.elements.container && crop.isHide) {
+        setClass(target, {
+          add: Crop.CROP_HIDE_CLASS,
+          remove: crop.options.beforeHideClass
+        });
+      }
     }
   }, {
     key: 'render',
@@ -2185,8 +2264,8 @@ var Crop = function () {
     }
 
     /**
-     * 设置裁剪框样式
-     * @param {Object} border 位置大小
+     * 设置裁剪框大小
+     * @param {Object} border 位置大小{ x, y, width, height }
      */
 
   }, {
@@ -2205,7 +2284,7 @@ var Crop = function () {
           viewWidth = _crop$options3.viewWidth,
           viewHeight = _crop$options3.viewHeight;
 
-      var maskProps = {
+      var maskStyle = {
         width: width,
         height: height,
         left: x - viewWidth,
@@ -2223,7 +2302,7 @@ var Crop = function () {
         crop.canvas.options.offset = offset;
       }
 
-      setStyle(crop.elements.mask, maskProps);
+      setStyle(crop.elements.mask, maskStyle);
 
       crop.border = border;
       crop.canvasOffset = offset;
@@ -2240,17 +2319,12 @@ var Crop = function () {
           viewHeight = _options.viewHeight;
 
 
-      border.width = isNumber(width) ? width : BORDER_SIZE;
-      border.height = isNumber(height) ? height : BORDER_SIZE;
+      border.width = isNumber(width) ? width : viewWidth;
+      border.height = isNumber(height) ? height : viewHeight;
       border.x = isNumber(x) ? x : (viewWidth - border.width) / 2;
       border.y = isNumber(y) ? y : (viewHeight - border.height) / 2;
 
       return border;
-    }
-  }, {
-    key: 'load',
-    value: function load(target) {
-      this.canvas.load(target);
     }
   }, {
     key: 'on',
@@ -2270,41 +2344,46 @@ var Crop = function () {
   }, {
     key: 'show',
     value: function show(transition) {
-      var _this = this;
-
-      var el = this.elements.container;
-      var duration = transition === false ? 0 : 30;
-
-      // 加定时器保证在其他任务完成之后执行
-      delay(function () {
-        setClass(el, {
-          remove: CROP_HIDE
-        });
-        delay(function () {
+      var crop = this;
+      if (!crop.isHide) return;
+      win.requestAnimationFrame(function () {
+        var el = crop.elements.container;
+        var options = crop.options;
+        if (transition === false) {
           setClass(el, {
-            remove: _this.options.showClass
+            remove: Crop.CROP_HIDE_CLASS
           });
-        }, duration);
+        } else {
+          setClass(el, {
+            remove: Crop.CROP_HIDE_CLASS,
+            add: options.beforeShowClass
+          });
+          delay(function () {
+            setClass(el, {
+              remove: options.beforeShowClass
+            });
+          });
+        }
+        crop.isHide = false;
       });
     }
   }, {
     key: 'hide',
     value: function hide(transition) {
       var crop = this;
-      var el = crop.elements.container;
-      var duration = transition === false ? 0 : 300;
-
-      // 加定时器保证在其他任务完成之后执行
-      delay(function () {
-        setClass(el, {
-          add: crop.options.hideClass
-        });
-        delay(function () {
+      if (crop.isHide) return;
+      win.requestAnimationFrame(function () {
+        var el = crop.elements.container;
+        if (transition === false) {
           setClass(el, {
-            add: [CROP_HIDE, crop.options.showClass],
-            remove: crop.options.hideClass
+            add: Crop.CROP_HIDE_CLASS
           });
-        }, duration);
+        } else {
+          setClass(el, {
+            add: crop.options.beforeHideClass
+          });
+        }
+        crop.isHide = true;
       });
     }
   }, {
@@ -2315,7 +2394,9 @@ var Crop = function () {
 
       crop.canvas.destroy();
 
-      container.removeEventListener('touchstart', crop.touchstart);
+      removeListener(container, 'click', crop.onClick);
+      removeListener(container, 'transitionend', crop.transitionend);
+      removeListener(container, 'webkitTransitionEnd', crop.transitionend);
 
       if (isInPage(container)) {
         crop.options.el.removeChild(container);
@@ -2325,8 +2406,32 @@ var Crop = function () {
   return Crop;
 }();
 
+Crop.defaults = {
+  // 容器宽度
+  viewWidth: viewWidth,
+  // 容器高度
+  viewHeight: viewHeight,
+  // 插入节点
+  el: document.body,
+  // 裁剪框大小
+  border: {
+    width: borderSize,
+    height: borderSize
+  },
+  // 允许缩放的最大比例
+  maxScale: 2,
+  // 画布比例
+  canvasRatio: 2,
+  // 按钮文字
+  confirmText: '确认',
+  cancleText: '取消',
+  // 显示隐藏类名
+  beforeShowClass: 'crop-slide-to-right',
+  beforeHideClass: 'crop-slide-to-bottom'
+};
 Crop.imageToCanvas = imageToCanvas;
 Crop.Canvas = Canvas;
+Crop.CROP_HIDE_CLASS = 'crop-hide';
 
 return Crop;
 
