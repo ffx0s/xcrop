@@ -106,8 +106,11 @@ export function delay (callback, ms) {
 export const browser = (() => {
   const userAgent = navigator.userAgent
   const ios = !!userAgent.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)
+  const data = userAgent.match(/Android\s([0-9\\.]*)/) || []
+  const android = data[1] || false
 
   return {
+    android,
     ios: ios ? { version: +userAgent.match(/[OS\s]\d+/i)[0] } : false
   }
 })()
