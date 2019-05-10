@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.6
+   * @name xcrop v1.1.7
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -159,8 +159,11 @@ function delay(callback, ms) {
 var browser = function () {
   var userAgent = navigator.userAgent;
   var ios = !!userAgent.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/);
+  var data = userAgent.match(/Android\s([0-9\\.]*)/) || [];
+  var android = data[1] || false;
 
   return {
+    android: android,
     ios: ios ? { version: +userAgent.match(/[OS\s]\d+/i)[0] } : false
   };
 }();
@@ -470,8 +473,7 @@ function initEvent$1(canvas) {
   canvas.animation = { stop: noop };
   canvas.wheeling = false;
   canvas.upTime = 0;
-  canvas.dragmove = throttle(canvas.dragmove);
-  canvas.pinchmove = throttle(canvas.pinchmove);
+  canvas.touchmove = throttle(canvas.touchmove);
   canvas.mousescroll = throttle(canvas.mousescroll);
 }
 
@@ -591,7 +593,7 @@ var events = {
       x: 0,
       y: 0
     };
-    that.last.time = new Date().getTime();
+    that.last.time = Date.now();
     that.touchDelay = 3;
     that.emit('dragstart', e);
   },
@@ -604,7 +606,7 @@ var events = {
     };
     var x = (move.x - that.last.move.x) * that.canvasRatio;
     var y = (move.y - that.last.move.y) * that.canvasRatio;
-    var nowTime = new Date().getTime();
+    var nowTime = Date.now();
 
     that.last.dis = {
       x: x,
@@ -961,23 +963,42 @@ var Easing = {
 
 };
 
-var requestAnimationFrame = win.requestAnimationFrame || win.webkitRequestAnimationFrame || function (callback) {
-  return win.setTimeout(callback, 1000 / 60);
-};
+/**
+ * @see https://gist.github.com/paulirish/1579671
+ */
+(function () {
+  var lastTime = 0;
+  var vendors = ['ms', 'moz', 'webkit', 'o'];
+  for (var x = 0; x < vendors.length && !win.requestAnimationFrame; ++x) {
+    win.requestAnimationFrame = win[vendors[x] + 'RequestAnimationFrame'];
+    win.cancelAnimationFrame = win[vendors[x] + 'CancelAnimationFrame'] || win[vendors[x] + 'CancelRequestAnimationFrame'];
+  }
 
-var cancelAnimationFrame = win.cancelAnimationFrame || function (id) {
-  clearTimeout(id);
-};
+  if (!win.requestAnimationFrame) {
+    win.requestAnimationFrame = function (callback) {
+      var currTime = Date.now();
+      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+      var id = win.setTimeout(function () {
+        callback(currTime + timeToCall);
+      }, timeToCall);
+      lastTime = currTime + timeToCall;
+      return id;
+    };
+  }
 
-win.requestAnimationFrame = requestAnimationFrame;
-win.cancelAnimationFrame = cancelAnimationFrame;
+  if (!win.cancelAnimationFrame) {
+    win.cancelAnimationFrame = function (id) {
+      clearTimeout(id);
+    };
+  }
+})();
 
 /**
  * 获取当前时间戳
  * @returns {Number} 时间戳
  */
 var now = function now() {
-  return new Date().getTime();
+  return Date.now();
 };
 
 // 动画默认选项
@@ -1018,17 +1039,17 @@ var defaultsOptions = {
     running(value);
 
     if (scale === 1) {
-      cancelAnimationFrame(timer);
+      win.cancelAnimationFrame(timer);
       end && end();
     } else {
-      timer = requestAnimationFrame(step);
+      timer = win.requestAnimationFrame(step);
     }
   }
 
-  timer = requestAnimationFrame(step);
+  timer = win.requestAnimationFrame(step);
   return {
     stop: function stop() {
-      cancelAnimationFrame(timer);
+      win.cancelAnimationFrame(timer);
     }
   };
 };
@@ -1537,6 +1558,15 @@ function resetSize(image, options) {
   return { width: width, height: height };
 }
 
+function clearCanvas(canvas, context, width, height) {
+  // 安卓老版本 clearRect 方法有 bug，换一种方式清画布
+  if (browser.android && parseFloat(browser.android) <= 4.1) {
+    canvas.height = height;
+  } else {
+    context.clearRect(0, 0, width, height);
+  }
+}
+
 function initActions(canvas) {
   // 图片相对于canvas的坐标
   canvas.position = {
@@ -1627,9 +1657,9 @@ var actions = {
         scale = _that$position.scale;
 
 
-    context.clearRect(0, 0, width, height);
+    clearCanvas(that.canvas, context, width, height);
     context.save();
-    that.context.translate(x, y);
+    context.translate(x, y);
     context.scale(scale, scale);
     context.drawImage(that.image.el, 0, 0);
     context.restore();
