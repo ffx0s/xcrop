@@ -15,8 +15,7 @@ export function initEvent (canvas) {
   canvas.animation = { stop: noop }
   canvas.wheeling = false
   canvas.upTime = 0
-  canvas.dragmove = throttle(canvas.dragmove)
-  canvas.pinchmove = throttle(canvas.pinchmove)
+  canvas.touchmove = throttle(canvas.touchmove)
   canvas.mousescroll = throttle(canvas.mousescroll)
 }
 
@@ -144,7 +143,7 @@ export default {
       x: 0,
       y: 0
     }
-    that.last.time = new Date().getTime()
+    that.last.time = Date.now()
     that.touchDelay = 3
     that.emit('dragstart', e)
   },
@@ -158,7 +157,7 @@ export default {
     }
     const x = (move.x - that.last.move.x) * that.canvasRatio
     const y = (move.y - that.last.move.y) * that.canvasRatio
-    const nowTime = new Date().getTime()
+    const nowTime = Date.now()
 
     that.last.dis = {
       x,

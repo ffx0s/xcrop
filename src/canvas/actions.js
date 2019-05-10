@@ -1,5 +1,5 @@
 import animate from '../util/animate'
-import { imgCover, imageToCanvas } from '../util/image'
+import { imgCover, imageToCanvas, clearCanvas } from '../util/image'
 import { delay } from '../util/shared'
 import { isInPage } from '../util/element'
 import { calculate, toFixed } from './helper'
@@ -88,9 +88,9 @@ export default {
     const { width, height } = that.options
     const { x, y, scale } = that.position
 
-    context.clearRect(0, 0, width, height)
+    clearCanvas(that.canvas, context, width, height)
     context.save()
-    that.context.translate(x, y)
+    context.translate(x, y)
     context.scale(scale, scale)
     context.drawImage(that.image.el, 0, 0)
     context.restore()

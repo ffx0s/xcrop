@@ -1,27 +1,12 @@
 import { extendDeep } from './shared'
 import Tween from './tween'
-
-const requestAnimationFrame =
-  win.requestAnimationFrame ||
-  win.webkitRequestAnimationFrame ||
-  function (callback) {
-    return win.setTimeout(callback, 1000 / 60)
-  }
-
-const cancelAnimationFrame =
-  win.cancelAnimationFrame ||
-  function (id) {
-    clearTimeout(id)
-  }
-
-win.requestAnimationFrame = requestAnimationFrame
-win.cancelAnimationFrame = cancelAnimationFrame
+import './rAF'
 
 /**
  * 获取当前时间戳
  * @returns {Number} 时间戳
  */
-const now = () => new Date().getTime()
+const now = () => Date.now()
 
 // 动画默认选项
 const defaultsOptions = {
@@ -57,17 +42,17 @@ export default function (_options) {
     running(value)
 
     if (scale === 1) {
-      cancelAnimationFrame(timer)
+      win.cancelAnimationFrame(timer)
       end && end()
     } else {
-      timer = requestAnimationFrame(step)
+      timer = win.requestAnimationFrame(step)
     }
   }
 
-  timer = requestAnimationFrame(step)
+  timer = win.requestAnimationFrame(step)
   return {
     stop: function () {
-      cancelAnimationFrame(timer)
+      win.cancelAnimationFrame(timer)
     }
   }
 }
