@@ -405,11 +405,3 @@ function resetSize (image, options) {
   return { width, height }
 }
 
-export function clearCanvas (canvas, context, width, height) {
-  // 安卓老版本 clearRect 方法有 bug，换一种方式清画布
-  if (browser.android && parseFloat(browser.android) <= 4.1) {
-    canvas.height = height
-  } else {
-    context.clearRect(0, 0, width, height)
-  }
-}

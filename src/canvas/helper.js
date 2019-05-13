@@ -89,3 +89,15 @@ export function mouseMove (moveFn, upFn, capture = false) {
 export function getPoints (event) {
   return event.touches ? event.touches : [event]
 }
+
+export function isFastMove (disX, disY, disTime) {
+  const speed = 0.3
+  const time = 420
+  let x = disX / disTime
+  let y = disY / disTime
+  if (Math.abs(x) > speed || Math.abs(y) > speed) {
+    x *= time
+    y *= time
+    return { x, y, time: time * 2 }
+  }
+}

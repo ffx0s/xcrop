@@ -1,3 +1,5 @@
+import { browser } from './shared'
+
 /**
  * 缩放画布
  * @param {Element} canvas 画布
@@ -107,4 +109,13 @@ export function drawImage (target, sx, sy, swidth, sheight, x, y, width, height)
   )
 
   return canvas
+}
+
+export function clearCanvas (canvas, context, width, height) {
+  // 安卓老版本 clearRect 方法有 bug，换一种方式清画布
+  if (browser.android && parseFloat(browser.android) <= 4.1) {
+    canvas.height = height
+  } else {
+    context.clearRect(0, 0, width, height)
+  }
 }
