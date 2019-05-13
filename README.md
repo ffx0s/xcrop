@@ -162,7 +162,8 @@ export default class App extends Component {
 |el|false|Element|body|插入节点|
 |viewWidth|false|Number|document.documentElement.clientWidth|容器宽度|
 |viewHeight|false|Number|document.documentElement.clientHeight|容器高度|  
-|border|false|Object|{x,y,width,height}|裁剪框位置大小，默认居中，为容器80%大小|
+|border|false|Object|{x,y,width,height}|裁剪框位置大小，默认居中，为容器90%大小|
+|circle|false|Boolean|false|裁剪框是否为圆形，仅样式改变，裁剪后输出的图片依然是矩形，不支持安卓<=4.1的版本|
 |maxScale|false|Number|2|允许缩放的最大比例|
 |confirmText|false|String|确认|确认按钮文字|
 |cancleText|false|String|取消|取消按钮文字|
