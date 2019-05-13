@@ -3,9 +3,10 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <style>
-    * {
+    body {
       margin: 0;
       padding: 0;
     }
@@ -16,31 +17,35 @@
   <br />
   <br />
   <input type="file" id="fileInput" accept="image/*">
-  <button id="destroyBtn">销毁</button>
+  <br />
+  <br />
+  <div id="actions">
+    <button data-action="show">show</button>
+    <button data-action="setBorder">setBorder</button>
+    <button data-action="destroy">destroy</button>
+  </div>
 
   <script src="../dist/crop.js"></script>
 
   <script>
-    window.onload = function () {
-      var crop = new Crop()
+    (function () {
+      var crop = null
 
-      crop.on('cancle', function (crop) {
-        crop.hide()
-      })
-      crop.on('confirm', function (crop) {
-        createImage(crop.get())
-        createImage(crop.get({ width: 300 }))
-        crop.hide()
-      })
-
-      function onChange (e) {
-        var file = e.target.files[0]
-        if (!file) return false
-        crop.load(file)
-        this.value = ''
+      function createInstance() {
+        var instance = new Crop()
+        instance
+          .on('cancle', function (crop) {
+            crop.hide()
+          })
+          .on('confirm', function (crop) {
+            createImage(crop.get())
+            createImage(crop.get({ width: 300 }))
+            crop.hide()
+          })
+        return instance
       }
 
-      function createImage (src) {
+      function createImage(src) {
         var img = new Image()
         img.onload = function () {
           var div = document.createElement('div')
@@ -51,17 +56,43 @@
         img.src = src
       }
 
-      function destroy () {
-        if (crop) {
-          crop.destroy()
-          // 移除引用关系
-          crop = null
+      function onChange(e) {
+        var file = e.target.files[0]
+        if (!file) return false
+        if (!crop) crop = createInstance()
+        crop.load(file)
+        this.value = ''
+      }
+
+      var actions = {
+        destroy: function () {
+          if (crop) {
+            crop.destroy()
+            // 移除引用关系
+            crop = null
+          }
+          alert('已销毁')
+        },
+        show: function () {
+          crop ? crop.show() : alert('请先上传图片')
+        },
+        setBorder: function () {
+          if (crop) {
+            crop.options.circle = true
+            crop.setBorder({ width: 250, height: 250 })
+            crop.show()
+          }
         }
       }
 
+      function handleClick(event) {
+        var actionName = event.target.getAttribute('data-action')
+        actionName && actions[actionName]()
+      }
+
       document.getElementById('fileInput').addEventListener('change', onChange)
-      document.getElementById('destroyBtn').addEventListener('click', destroy)
-    }
+      document.getElementById('actions').addEventListener('click', handleClick)
+    })()
   </script>
 
 </html>
