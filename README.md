@@ -2,11 +2,12 @@
 
 [![npm](https://img.shields.io/npm/v/xcrop.svg)](https://www.npmjs.com/package/xcrop) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-> 移动端裁剪插件，原生 JavaScript 实现，无依赖，支持 Vue 2.0，React。
+> 移动端裁剪插件，原生 JavaScript 实现，无依赖，支持 Vue 2.0，React。  
+ 
+<img src="https://static.webfed.cn/o_1danubjd06sqoagjn05o210639.gif" style="width: 329px;height:662px;">
 
 ## Demo
 [Demo](https://ffx0s.github.io/xcrop/examples/crop.html)  
-
 
 <img src="http://static.webfed.cn/o_1c8fs4vpu8sk1us8uisfge1n769.png" />  
 
