@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.7
+   * @name xcrop v1.1.8
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -40,7 +40,7 @@ function styleInject(css, ref) {
   }
 }
 
-var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:4;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop-hide{display:none}.crop-slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop-mask:before{top:0;float:left;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-transform-origin:0 0;transform-origin:0 0}.crop-handle,.crop-mask:before{position:absolute;left:0;width:100%}.crop-handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
+var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:4;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop-hide{display:none}.crop-slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop-mask:before{top:0;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;border-radius:inherit}.crop-handle,.crop-mask:before{position:absolute;left:0;width:100%}.crop-handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
 styleInject(css);
 
 function template(options) {
@@ -431,6 +431,18 @@ function getPoints(event) {
   return event.touches ? event.touches : [event];
 }
 
+function isFastMove(disX, disY, disTime) {
+  var speed = 0.3;
+  var time = 420;
+  var x = disX / disTime;
+  var y = disY / disTime;
+  if (Math.abs(x) > speed || Math.abs(y) > speed) {
+    x *= time;
+    y *= time;
+    return { x: x, y: y, time: time * 2 };
+  }
+}
+
 function initRender(canvas) {
   canvas.canvas = createCanvas(canvas.options.width, canvas.options.height);
   canvas.context = canvas.canvas.getContext('2d');
@@ -503,6 +515,11 @@ var events = {
   },
   mousescroll: function mousescroll(e, scaleChanged) {
     var that = this;
+    var _that$options = that.options,
+        maxScale = _that$options.maxScale,
+        minScale = _that$options.minScale;
+
+    var scale = that.position.scale * scaleChanged;
     if (!that.rect) {
       that.rect = that.canvas.getBoundingClientRect();
     }
@@ -510,15 +527,18 @@ var events = {
       x: (e.clientX - that.rect.left) * that.canvasRatio,
       y: (e.clientY - that.rect.top) * that.canvasRatio
     };
-    that.scaleTo(that.last.point, that.position.scale * scaleChanged);
-
+    if (scale > maxScale) {
+      scale = maxScale;
+    } else if (scale < minScale) {
+      scale = minScale;
+    }
+    if (that.position.scale !== scale) {
+      that.scaleTo(that.last.point, scale);
+    }
     clearTimeout(that.mouseScrollTimer);
     that.mouseScrollTimer = setTimeout(function () {
-      var result = that.validation();
-      if (result.isDraw) {
-        that.animate(result.scale, result.xpos, result.ypos);
-      }
-    }, 200);
+      that.validation(null, true);
+    }, 100);
 
     that.emit('mousewheel', e);
   },
@@ -629,33 +649,27 @@ var events = {
     var that = this;
     if (!that.moved) return;
 
-    var speed = 0.3;
     var position = that.position;
-    var vx = that.last.dis.x / that.last.dis.time;
-    var vy = that.last.dis.y / that.last.dis.time;
     var scale = position.scale;
+    // 是否为快速滑动
+    var fastMove = isFastMove(that.last.dis.x, that.last.dis.y, that.last.dis.time);
 
-    // 缓冲动画
-    if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
-      var time = 420;
-      var x = position.x + vx * time;
-      var y = position.y + vy * time;
+    if (fastMove) {
+      var x = position.x + fastMove.x;
+      var y = position.y + fastMove.y;
       var type = 'easeOutCubic';
       var result = that.validation({ x: x, y: y, scale: scale });
 
       if (result.isDraw) {
-        x = result.xpos;
-        y = result.ypos;
+        x = result.x;
+        y = result.y;
         scale = result.scale;
         type = 'easeOutBack';
       }
 
-      that.animate(scale, x, y, { type: type, time: time * 2 });
+      that.animate(x, y, scale, { type: type, time: fastMove.time });
     } else {
-      var _result = that.validation();
-      if (_result.isDraw) {
-        that.animate(_result.scale, _result.xpos, _result.ypos);
-      }
+      that.validation(null, true);
     }
 
     that.emit('dragend', e);
@@ -714,21 +728,16 @@ var events = {
   dobuleClick: function dobuleClick() {
     var that = this;
     var rect = that.canvas.getBoundingClientRect();
-    var _that$options = that.options,
-        maxScale = _that$options.maxScale,
-        minScale = _that$options.minScale;
+    var _that$options2 = that.options,
+        maxScale = _that$options2.maxScale,
+        minScale = _that$options2.minScale;
 
     var point = {
       x: (that.last.move.x - rect.left) * that.canvasRatio,
       y: (that.last.move.y - rect.top) * that.canvasRatio
     };
     var scale = that.position.scale;
-    if (scale < maxScale) {
-      scale = maxScale;
-    } else {
-      scale = minScale;
-    }
-    that.scaleTo(point, scale, true, true);
+    that.scaleTo(point, scale < maxScale ? maxScale : minScale, true, true);
   }
 };
 
@@ -1558,6 +1567,79 @@ function resetSize(image, options) {
   return { width: width, height: height };
 }
 
+/**
+ * 缩放画布
+ * @param {Element} canvas 画布
+ * @param {Number} scale 比例
+ */
+
+
+/**
+ * 复制 canvas
+ * @param {Element} canvas 画布
+ */
+function copyCanvas(canvas) {
+  var newCanvas = document.createElement('canvas');
+
+  newCanvas.width = canvas.width;
+  newCanvas.height = canvas.height;
+  newCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+  return newCanvas;
+}
+
+/**
+ * 处理大图缩小有锯齿的问题
+ * @param {Element} canvas 画布
+ * @param {Number} scale 比例
+ */
+function antialisScale(canvas, scale) {
+  var originCanvas = copyCanvas(canvas);
+  var ctx = originCanvas.getContext('2d');
+  var newCanvas = document.createElement('canvas');
+  var newCtx = newCanvas.getContext('2d');
+
+  var sourceWidth = originCanvas.width;
+  var sourceHeight = originCanvas.height;
+  var width = Math.ceil(sourceWidth * scale);
+  var height = Math.ceil(sourceHeight * scale);
+
+  newCanvas.width = width;
+  newCanvas.height = height;
+
+  // 缩小操作的次数
+  var steps = Math.ceil(Math.log(sourceWidth / width) / Math.log(3));
+  var value = 0.5;
+
+  // 缩小操作
+  // 进行steps次的减半缩小
+  for (var i = 0; i < steps; i++) {
+    ctx.drawImage(originCanvas, 0, 0, sourceWidth * value, sourceHeight * value);
+  }
+  // 放大操作
+  // 进行steps次的两倍放大
+  newCtx.drawImage(originCanvas, 0, 0, originCanvas.width * Math.pow(value, steps), originCanvas.height * Math.pow(value, steps), 0, 0, width, height);
+
+  ctx = null;
+  originCanvas = null;
+
+  return newCanvas;
+}
+
+/**
+ * 裁剪
+ */
+function drawImage(target, sx, sy, swidth, sheight, x, y, width, height) {
+  var canvas = document.createElement('canvas');
+
+  var _width = canvas.width = Math.floor(width);
+  var _height = canvas.height = Math.floor(height);
+
+  canvas.getContext('2d').drawImage(target, Math.floor(sx), Math.floor(sy), Math.floor(swidth), Math.floor(sheight), Math.floor(x), Math.floor(y), _width, _height);
+
+  return canvas;
+}
+
 function clearCanvas(canvas, context, width, height) {
   // 安卓老版本 clearRect 方法有 bug，换一种方式清画布
   if (browser.android && parseFloat(browser.android) <= 4.1) {
@@ -1676,7 +1758,7 @@ var actions = {
     var that = this;
 
     if (transition) {
-      that.animate(that.position.scale, x, y);
+      that.animate(x, y, that.position.scale);
     } else {
       that.setData({ x: x, y: y });
       that.draw();
@@ -1703,26 +1785,26 @@ var actions = {
         y = _calculate.y;
 
     if (check) {
-      var result = that.checkBorder({ x: x, y: y }, scale, { x: x, y: y });
-      x = result.xpos;
-      y = result.ypos;
+      var result = that.checkPosition({ x: x, y: y, scale: scale });
+      x = result.x;
+      y = result.y;
     }
 
     if (transition) {
-      that.animate(scale, x, y);
+      that.animate(x, y, scale);
     } else {
       that.setData({ scale: scale });
       that.moveTo(x, y);
     }
   },
-  animate: function animate(scale, xpos, ypos) {
+  animate: function animate(x, y, scale) {
     var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { time: 450, type: 'easeOutCubic' };
 
     var that = this;
 
     that.animation.stop();
     that.animation = _animate({
-      targets: [[that.position.scale, scale], [that.position.x, xpos], [that.position.y, ypos]],
+      targets: [[that.position.scale, scale], [that.position.x, x], [that.position.y, y]],
       time: options.time,
       type: options.type,
       running: function running(target) {
@@ -1738,7 +1820,7 @@ var actions = {
 };
 
 var validation$1 = {
-  validation: function validation(position) {
+  validation: function validation(position, isDraw) {
     var that = this;
     position = position || that.position;
     var _that$options = that.options,
@@ -1747,28 +1829,32 @@ var validation$1 = {
 
     var scale = position.scale;
     var result = {
-      xpos: position.x,
-      ypos: position.y,
+      x: position.x,
+      y: position.y,
       isDraw: false
-
-      // 缩放比例判断
-    };if (scale > maxScale) {
-      setScale(maxScale);
-    } else if (scale < minScale) {
-      setScale(minScale);
-    } else {
-      result = that.checkBorder(position, scale, position);
-      result.scale = scale;
-    }
-
-    function setScale(newScale) {
+    };
+    var setScale = function setScale(newScale) {
       var _calculate = calculate(position, that.last.point, newScale),
           x = _calculate.x,
           y = _calculate.y;
 
-      result = that.checkBorder({ x: x, y: y }, newScale, { x: x, y: y });
+      result = that.checkPosition({ x: x, y: y, scale: newScale });
       result.scale = newScale;
       result.isDraw = true;
+    };
+
+    // 缩放比例判断
+    if (scale > maxScale) {
+      setScale(maxScale);
+    } else if (scale < minScale) {
+      setScale(minScale);
+    } else {
+      result = that.checkPosition(position);
+      result.scale = scale;
+    }
+
+    if (isDraw && result.isDraw) {
+      that.animate(result.x, result.y, result.scale);
     }
 
     return result;
@@ -1776,12 +1862,14 @@ var validation$1 = {
 
 
   /**
-   * 边界值判断
-   * @param {Object} curPos 当前位置
-   * @param {Number} scale 目标比例
-   * @param {Object} position 目标位置
+   * 判断图片是否超出可视区，返回矫正后的位置
+   * @param {Object} position {x, y, scale}图片当前位置
    */
-  checkBorder: function checkBorder(curPos, scale, position) {
+  checkPosition: function checkPosition(_ref) {
+    var x = _ref.x,
+        y = _ref.y,
+        scale = _ref.scale;
+
     var that = this;
     var _that$options2 = that.options,
         width = _that$options2.width,
@@ -1790,35 +1878,33 @@ var validation$1 = {
 
     var imageWidth = scale * that.image.width;
     var imageHeight = scale * that.image.height;
-    var w = width - (offset.left + offset.right) - (imageWidth - (offset.left - position.x));
-    var h = height - (offset.top + offset.bottom) - (imageHeight - (offset.top - position.y));
-    var xpos = curPos.x;
-    var ypos = curPos.y;
+    var w = width - (offset.left + offset.right) - (imageWidth - (offset.left - x));
+    var h = height - (offset.top + offset.bottom) - (imageHeight - (offset.top - y));
     var isDraw = false;
 
-    if (ypos > offset.top) {
+    if (y > offset.top) {
       // top
-      ypos = offset.top;
+      y = offset.top;
       isDraw = true;
     } else if (h > 0) {
       // bottom
-      ypos = ypos + h;
+      y = y + h;
       isDraw = true;
     }
 
-    if (xpos > offset.left) {
+    if (x > offset.left) {
       // left
-      xpos = offset.left;
+      x = offset.left;
       isDraw = true;
     } else if (w > 0) {
       // right
-      xpos = xpos + w;
+      x = x + w;
       isDraw = true;
     }
 
     return {
-      xpos: xpos,
-      ypos: ypos,
+      x: x,
+      y: y,
       isDraw: isDraw
     };
   }
@@ -2030,79 +2116,6 @@ Canvas.defaults = {
 };
 objectAssign(Canvas.prototype, render$1, events, actions, validation$1);
 
-/**
- * 缩放画布
- * @param {Element} canvas 画布
- * @param {Number} scale 比例
- */
-
-
-/**
- * 复制 canvas
- * @param {Element} canvas 画布
- */
-function copyCanvas(canvas) {
-  var newCanvas = document.createElement('canvas');
-
-  newCanvas.width = canvas.width;
-  newCanvas.height = canvas.height;
-  newCanvas.getContext('2d').drawImage(canvas, 0, 0);
-
-  return newCanvas;
-}
-
-/**
- * 处理大图缩小有锯齿的问题
- * @param {Element} canvas 画布
- * @param {Number} scale 比例
- */
-function antialisScale(canvas, scale) {
-  var originCanvas = copyCanvas(canvas);
-  var ctx = originCanvas.getContext('2d');
-  var newCanvas = document.createElement('canvas');
-  var newCtx = newCanvas.getContext('2d');
-
-  var sourceWidth = originCanvas.width;
-  var sourceHeight = originCanvas.height;
-  var width = Math.ceil(sourceWidth * scale);
-  var height = Math.ceil(sourceHeight * scale);
-
-  newCanvas.width = width;
-  newCanvas.height = height;
-
-  // 缩小操作的次数
-  var steps = Math.ceil(Math.log(sourceWidth / width) / Math.log(3));
-  var value = 0.5;
-
-  // 缩小操作
-  // 进行steps次的减半缩小
-  for (var i = 0; i < steps; i++) {
-    ctx.drawImage(originCanvas, 0, 0, sourceWidth * value, sourceHeight * value);
-  }
-  // 放大操作
-  // 进行steps次的两倍放大
-  newCtx.drawImage(originCanvas, 0, 0, originCanvas.width * Math.pow(value, steps), originCanvas.height * Math.pow(value, steps), 0, 0, width, height);
-
-  ctx = null;
-  originCanvas = null;
-
-  return newCanvas;
-}
-
-/**
- * 裁剪
- */
-function drawImage(target, sx, sy, swidth, sheight, x, y, width, height) {
-  var canvas = document.createElement('canvas');
-
-  var _width = canvas.width = Math.floor(width);
-  var _height = canvas.height = Math.floor(height);
-
-  canvas.getContext('2d').drawImage(target, Math.floor(sx), Math.floor(sy), Math.floor(swidth), Math.floor(sheight), Math.floor(x), Math.floor(y), _width, _height);
-
-  return canvas;
-}
-
 var viewWidth = document.documentElement.clientWidth;
 var viewHeight = document.documentElement.clientHeight;
 var borderSize = Math.min(viewWidth, viewHeight) * 0.9;
@@ -2312,14 +2325,16 @@ var Crop = function () {
       var _crop$options3 = crop.options,
           canvasRatio = _crop$options3.canvasRatio,
           viewWidth = _crop$options3.viewWidth,
-          viewHeight = _crop$options3.viewHeight;
+          viewHeight = _crop$options3.viewHeight,
+          circle = _crop$options3.circle;
 
       var maskStyle = {
         width: width,
         height: height,
         left: x - viewWidth,
         top: y - viewHeight,
-        borderWidth: viewHeight + 'px ' + viewWidth + 'px'
+        borderWidth: viewHeight + 'px ' + viewWidth + 'px',
+        borderRadius: circle ? browser.android && parseFloat(browser.android) <= 4.1 ? null : '50%' : null
       };
       var offset = {
         left: x * canvasRatio,
@@ -2448,6 +2463,8 @@ Crop.defaults = {
     width: borderSize,
     height: borderSize
   },
+  // 裁剪框是否为圆形，仅样式改变，裁剪后输出的图片依然是矩形，不支持安卓4.1以下版本
+  circle: false,
   // 允许缩放的最大比例
   maxScale: 2,
   // 画布比例
