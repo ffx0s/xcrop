@@ -1,5 +1,6 @@
 import animate from '../util/animate'
-import { imgCover, imageToCanvas, clearCanvas } from '../util/image'
+import { imgCover, imageToCanvas } from '../util/image'
+import { clearCanvas } from '../util/canvas'
 import { delay } from '../util/shared'
 import { isInPage } from '../util/element'
 import { calculate, toFixed } from './helper'
@@ -109,7 +110,7 @@ export default {
     const that = this
 
     if (transition) {
-      that.animate(that.position.scale, x, y)
+      that.animate(x, y, that.position.scale)
     } else {
       that.setData({ x, y })
       that.draw()
@@ -132,28 +133,28 @@ export default {
 
     let { x, y } = calculate(that.position, point, scale)
     if (check) {
-      const result = that.checkBorder({ x, y }, scale, { x, y })
-      x = result.xpos
-      y = result.ypos
+      const result = that.checkPosition({ x, y, scale })
+      x = result.x
+      y = result.y
     }
 
     if (transition) {
-      that.animate(scale, x, y)
+      that.animate(x, y, scale)
     } else {
       that.setData({ scale })
       that.moveTo(x, y)
     }
   },
 
-  animate (scale, xpos, ypos, options = { time: 450, type: 'easeOutCubic' }) {
+  animate (x, y, scale, options = { time: 450, type: 'easeOutCubic' }) {
     const that = this
 
     that.animation.stop()
     that.animation = animate({
       targets: [
         [that.position.scale, scale],
-        [that.position.x, xpos],
-        [that.position.y, ypos]
+        [that.position.x, x],
+        [that.position.y, y]
       ],
       time: options.time,
       type: options.type,

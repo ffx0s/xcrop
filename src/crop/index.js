@@ -1,7 +1,7 @@
 import './crop.css'
 import template from './template'
 import Canvas from '../canvas/index'
-import { delay, extendDeep, makeArray, objectAssign, isNumber } from '../util/shared'
+import { delay, extendDeep, makeArray, objectAssign, isNumber, browser } from '../util/shared'
 import { dataURItoBlob, URL } from '../util/file'
 import { antialisScale, drawImage } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
@@ -25,6 +25,8 @@ class Crop {
       width: borderSize,
       height: borderSize
     },
+    // 裁剪框是否为圆形，仅样式改变，裁剪后输出的图片依然是矩形，不支持安卓4.1以下版本
+    circle: false,
     // 允许缩放的最大比例
     maxScale: 2,
     // 画布比例
@@ -210,13 +212,14 @@ class Crop {
   setBorder (border) {
     const crop = this
     const { x, y, width, height } = crop.checkBorder(border)
-    const { canvasRatio, viewWidth, viewHeight } = crop.options
+    const { canvasRatio, viewWidth, viewHeight, circle } = crop.options
     const maskStyle = {
       width,
       height,
       left: x - viewWidth,
       top: y - viewHeight,
-      borderWidth: `${viewHeight}px ${viewWidth}px`
+      borderWidth: `${viewHeight}px ${viewWidth}px`,
+      borderRadius: circle ? (browser.android && parseFloat(browser.android) <= 4.1 ? null : '50%') : null
     }
     const offset = {
       left: x * canvasRatio,

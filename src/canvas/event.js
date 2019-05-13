@@ -1,6 +1,6 @@
 import { makeArray, noop, throttle } from '../util/shared'
 import { addListener } from '../util/element'
-import { getTouchCenter, getScale, getPoints, mouseMove } from './helper'
+import { getTouchCenter, getScale, getPoints, mouseMove, isFastMove } from './helper'
 
 export function initEvent (canvas) {
   canvas.eventList = ['mousewheel', 'mousedown', 'touchstart', 'touchmove', 'touchend']
@@ -48,6 +48,8 @@ export default {
 
   mousescroll (e, scaleChanged) {
     const that = this
+    const { maxScale, minScale } = that.options
+    let scale = that.position.scale * scaleChanged
     if (!that.rect) {
       that.rect = that.canvas.getBoundingClientRect()
     }
@@ -55,15 +57,18 @@ export default {
       x: (e.clientX - that.rect.left) * that.canvasRatio,
       y: (e.clientY - that.rect.top) * that.canvasRatio
     }
-    that.scaleTo(that.last.point, that.position.scale * scaleChanged)
-
+    if (scale > maxScale) {
+      scale = maxScale
+    } else if (scale < minScale) {
+      scale = minScale
+    }
+    if (that.position.scale !== scale) {
+      that.scaleTo(that.last.point, scale)
+    }
     clearTimeout(that.mouseScrollTimer)
     that.mouseScrollTimer = setTimeout(() => {
-      const result = that.validation()
-      if (result.isDraw) {
-        that.animate(result.scale, result.xpos, result.ypos)
-      }
-    }, 200)
+      that.validation(null, true)
+    }, 100)
 
     that.emit('mousewheel', e)
   },
@@ -181,33 +186,27 @@ export default {
     const that = this
     if (!that.moved) return
 
-    const speed = 0.3
     const position = that.position
-    const vx = that.last.dis.x / that.last.dis.time
-    const vy = that.last.dis.y / that.last.dis.time
     let scale = position.scale
+    // 是否为快速滑动
+    const fastMove = isFastMove(that.last.dis.x, that.last.dis.y, that.last.dis.time)
 
-    // 缓冲动画
-    if (Math.abs(vx) > speed || Math.abs(vy) > speed) {
-      const time = 420
-      let x = position.x + vx * time
-      let y = position.y + vy * time
+    if (fastMove) {
+      let x = position.x + fastMove.x
+      let y = position.y + fastMove.y
       let type = 'easeOutCubic'
       const result = that.validation({ x, y, scale })
 
       if (result.isDraw) {
-        x = result.xpos
-        y = result.ypos
+        x = result.x
+        y = result.y
         scale = result.scale
         type = 'easeOutBack'
       }
 
-      that.animate(scale, x, y, { type, time: time * 2 })
+      that.animate(x, y, scale, { type, time: fastMove.time })
     } else {
-      const result = that.validation()
-      if (result.isDraw) {
-        that.animate(result.scale, result.xpos, result.ypos)
-      }
+      that.validation(null, true)
     }
 
     that.emit('dragend', e)
@@ -276,11 +275,6 @@ export default {
       y: (that.last.move.y - rect.top) * that.canvasRatio
     }
     let scale = that.position.scale
-    if (scale < maxScale) {
-      scale = maxScale
-    } else {
-      scale = minScale
-    }
-    that.scaleTo(point, scale, true, true)
+    that.scaleTo(point, scale < maxScale ? maxScale : minScale, true, true)
   }
 }
