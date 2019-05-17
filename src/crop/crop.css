@@ -1,4 +1,4 @@
-.crop-container {
+.crop {
   position: fixed;
   left: 0;
   top: 0;
@@ -11,27 +11,27 @@
   user-select: none;
 }
 
-.crop-hide {
+.crop_hide {
   display: none;
 }
 
-.crop-slide-to-left {
+.crop_slide-to-left {
   transform: translate3d(-100%, 0, 0);
 }
 
-.crop-slide-to-right {
+.crop_slide-to-right {
   transform: translate3d(100%, 0, 0);
 }
 
-.crop-slide-to-top {
+.crop_slide-to-top {
   transform: translate3d(0, -100%, 0);
 }
 
-.crop-slide-to-bottom {
+.crop_slide-to-bottom {
   transform: translate3d(0, 100%, 0);
 }
 
-.crop-zoom {
+.crop__zoom {
   position: absolute;
   z-index: 2;
   width: 100%;
@@ -40,7 +40,7 @@
   top: 0;
 }
 
-.crop-mask {
+.crop__mask {
   position: absolute; 
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, .6);
@@ -59,7 +59,7 @@
   }
 }
 
-.crop-handle {
+.crop__handle {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -77,10 +77,10 @@
   }
 }
 
-.crop-cancle {
+.crop__handle-cancle {
   float: left;
 }
 
-.crop-confirm {
+.crop__handle-confirm {
   float: right;
 }

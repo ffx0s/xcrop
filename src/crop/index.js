@@ -1,7 +1,7 @@
 import './crop.css'
 import template from './template'
 import Canvas from '../canvas/index'
-import { delay, extendDeep, makeArray, objectAssign, isNumber, browser } from '../util/shared'
+import { extendDeep, makeArray, objectAssign, isNumber, browser } from '../util/shared'
 import { dataURItoBlob, URL } from '../util/file'
 import { antialisScale, drawImage } from '../util/canvas'
 import { imageToCanvas } from '../util/image'
@@ -35,8 +35,8 @@ class Crop {
     confirmText: '确认',
     cancleText: '取消',
     // 显示隐藏类名
-    beforeShowClass: 'crop-slide-to-right',
-    beforeHideClass: 'crop-slide-to-bottom'
+    beforeShowClass: 'crop_slide-to-right',
+    beforeHideClass: 'crop_slide-to-bottom'
   }
 
   constructor (options = {}) {
@@ -277,7 +277,7 @@ class Crop {
           remove: Crop.CROP_HIDE_CLASS,
           add: options.beforeShowClass
         })
-        delay(() => {
+        win.requestAnimationFrame(() => {
           setClass(el, {
             remove: options.beforeShowClass
           })
@@ -322,7 +322,7 @@ class Crop {
 
   static imageToCanvas = imageToCanvas
   static Canvas = Canvas
-  static CROP_HIDE_CLASS = 'crop-hide'
+  static CROP_HIDE_CLASS = 'crop_hide'
 }
 
 export default Crop
