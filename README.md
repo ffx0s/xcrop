@@ -168,8 +168,8 @@ export default class App extends Component {
 |maxScale|false|Number|2|允许缩放的最大比例|
 |confirmText|false|String|确认|确认按钮文字|
 |cancleText|false|String|取消|取消按钮文字|
-|beforeShowClass|false|String|crop-slide-to-left|显示的动画类名，会在显示之前添加，之后移除，可选：crop-slide-to*, *: left/right/top/bottom|
-|beforeHideClass|false|String|crop-slide-to-bottom|隐藏的动画类名，会在隐藏之前添加，参数同上|
+|beforeShowClass|false|String|crop_slide-to-left|显示的动画类名，会在显示之前添加，之后移除，可选：crop-slide-to*, *: left/right/top/bottom|
+|beforeHideClass|false|String|crop_slide-to-bottom|隐藏的动画类名，会在隐藏之前添加，参数同上|
 
 
 ## 实例方法  
