@@ -1,6 +1,6 @@
 
   /*!
-   * @name xcrop v1.1.8
+   * @name xcrop v1.1.9
    * @github https://github.com/ffx0s/xcrop
    * @license MIT.
    */
@@ -40,7 +40,7 @@ function styleInject(css, ref) {
   }
 }
 
-var css = ".crop-container{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:4;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop-hide{display:none}.crop-slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop-slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop-slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop-slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop-zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop-mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop-mask:before{top:0;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;border-radius:inherit}.crop-handle,.crop-mask:before{position:absolute;left:0;width:100%}.crop-handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop-handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop-cancle{float:left}.crop-confirm{float:right}";
+var css = ".crop{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:4;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop_hide{display:none}.crop_slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop_slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop_slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop_slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop__zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop__mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop__mask:before{top:0;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;border-radius:inherit}.crop__handle,.crop__mask:before{position:absolute;left:0;width:100%}.crop__handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop__handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop__handle-cancle{float:left}.crop__handle-confirm{float:right}";
 styleInject(css);
 
 function template(options) {
@@ -48,7 +48,7 @@ function template(options) {
       confirmText = options.confirmText;
 
 
-  return '<div class="crop-container" data-el="container">' + '<div class="crop-zoom" data-el="zoom"></div>' + '<div class="crop-mask" data-el="mask"></div>' + '<div class="crop-handle" data-el="handle">' + ('<div class="crop-cancle" data-el="cancle" data-click="onCancle">' + cancleText + '</div>') + ('<div class="crop-confirm" data-el="confirm" data-click="onConfirm">' + confirmText + '</div>') + '</div>' + '</div>';
+  return '<div class="crop" data-el="container">' + '<div class="crop__zoom" data-el="zoom"></div>' + '<div class="crop__mask" data-el="mask"></div>' + '<div class="crop__handle" data-el="handle">' + ('<div class="crop__handle-cancle" data-el="cancle" data-click="onCancle">' + cancleText + '</div>') + ('<div class="crop__handle-confirm" data-el="confirm" data-click="onConfirm">' + confirmText + '</div>') + '</div>' + '</div>';
 }
 
 var toString = Object.prototype.toString;
@@ -2403,7 +2403,7 @@ var Crop = function () {
             remove: Crop.CROP_HIDE_CLASS,
             add: options.beforeShowClass
           });
-          delay(function () {
+          win.requestAnimationFrame(function () {
             setClass(el, {
               remove: options.beforeShowClass
             });
@@ -2473,12 +2473,12 @@ Crop.defaults = {
   confirmText: '确认',
   cancleText: '取消',
   // 显示隐藏类名
-  beforeShowClass: 'crop-slide-to-right',
-  beforeHideClass: 'crop-slide-to-bottom'
+  beforeShowClass: 'crop_slide-to-right',
+  beforeHideClass: 'crop_slide-to-bottom'
 };
 Crop.imageToCanvas = imageToCanvas;
 Crop.Canvas = Canvas;
-Crop.CROP_HIDE_CLASS = 'crop-hide';
+Crop.CROP_HIDE_CLASS = 'crop_hide';
 
 return Crop;
 
