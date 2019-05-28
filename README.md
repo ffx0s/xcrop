@@ -288,8 +288,3 @@ export default class App extends Component {
 ## Browser support
 
 Android 4.2+, iOS 8+
-
-
-## License
-
-xcrop is released under the [MIT License](http://desandro.mit-license.org/). Have at it.  
