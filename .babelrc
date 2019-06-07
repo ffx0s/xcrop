@@ -1,4 +1,8 @@
 {
-  "presets": ["es2015-rollup"],
-  "plugins": ["transform-class-properties"]
+  "presets": [
+    ["@babel/preset-env", {
+      "modules": false
+    }]
+  ],
+  "plugins": ["@babel/plugin-proposal-class-properties"]
 }

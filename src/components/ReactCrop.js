@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { Component } from 'react' // eslint-disable-line
 import Crop from 'xcrop'
 
 const EVENTS = [
@@ -46,7 +46,7 @@ export default class extends Component {
 
   render () {
     return (
-      <div className="crop-component" ref={el => this.el = el}></div>
+      <div className="crop-component" ref={el => this.el = el}></div> // eslint-disable-line
     )
   }
 }
