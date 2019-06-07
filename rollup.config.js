@@ -1,8 +1,6 @@
-// Rollup plugins
 import babel from 'rollup-plugin-babel'
 import resolve from 'rollup-plugin-node-resolve'
-import commonjs from 'rollup-plugin-commonjs'
-import uglify from 'rollup-plugin-uglify'
+import { uglify } from 'rollup-plugin-uglify'
 import replace from 'rollup-plugin-replace'
 import postcss from 'rollup-plugin-postcss'
 import simplevars from 'postcss-simple-vars'
@@ -14,18 +12,20 @@ const packageJson = require('./package.json')
 const isDev = process.env.NODE_ENV !== 'production'
 
 export default {
-  entry: 'src/crop/index.js',
-  intro: 'var win = window; var Math = win.Math;',
-  banner: `
-  /*!
-   * @name xcrop v${packageJson.version}
-   * @github https://github.com/ffx0s/xcrop
-   * @license MIT.
-   */
-  `,
-  dest: isDev ? 'dist/crop.js' : 'dist/crop.min.js',
-  format: 'umd',
-  moduleName: 'Crop',
+  input: 'src/crop/index.js',
+  output: {
+    file: isDev ? 'dist/crop.js' : 'dist/crop.min.js',
+    banner: `
+    /*!
+     * @name xcrop v${packageJson.version}
+     * @github https://github.com/ffx0s/xcrop
+     * @license MIT.
+     */
+    `,
+    format: 'umd',
+    name: 'Crop',
+    intro: 'var win = window; var Math = win.Math;'
+  },
   plugins: [
     postcss({
       plugins: [
@@ -37,11 +37,8 @@ export default {
       extensions: [ '.css' ]
     }),
     resolve({
-      jsnext: true,
-      main: true,
       browser: true
     }),
-    commonjs(),
     babel({
       exclude: 'node_modules/**'
     }),

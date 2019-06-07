@@ -75,7 +75,7 @@ class Crop {
       width: viewWidth,
       height: viewHeight
     })
-    setClass(crop.elements.container, {add: Crop.CROP_HIDE_CLASS})
+    setClass(crop.elements.container, { add: Crop.CROP_HIDE_CLASS })
 
     crop.setBorder(crop.border)
   }
