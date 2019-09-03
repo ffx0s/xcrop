@@ -147,8 +147,14 @@ class Crop {
     const { scale, x, y } = crop.canvas.position
     const clipWidth = crop.border.width * canvasRatio / scale
     const clipHeight = crop.border.height * canvasRatio / scale
-    const clipX = (crop.border.x * canvasRatio - x) / scale
-    const clipY = (crop.border.y * canvasRatio - y) / scale
+    let clipX = (crop.border.x * canvasRatio - x) / scale
+    if (clipX < 0) {
+      clipX = 0
+    }
+    let clipY = (crop.border.y * canvasRatio - y) / scale
+    if (clipY < 0) {
+      clipY = 0
+    }
     const count = 3
     let canvas
 
