@@ -12,7 +12,7 @@ export default class EventEmitter {
       if (!that.events[name]) {
         that.events[name] = []
       }
-      fn && (that.events[name].push({fn, once}))
+      fn && (that.events[name].push({ fn, once }))
     })
     return that
   }
