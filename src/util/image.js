@@ -404,4 +404,3 @@ function resetSize (image, options) {
 
   return { width, height }
 }
-
