@@ -1926,6 +1926,7 @@
 
   var validation = {
     validation: function validation(position, isDraw) {
+      var transition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
       var that = this;
       position = position || that.position;
       var _that$options = that.options,
@@ -1963,7 +1964,16 @@
       }
 
       if (isDraw && result.isDraw) {
-        that.animate(result.x, result.y, result.scale);
+        if (transition) {
+          that.animate(result.x, result.y, result.scale);
+        } else {
+          that.setData({
+            x: result.x,
+            y: result.y,
+            scale: result.scale
+          });
+          that.draw();
+        }
       }
 
       return result;
@@ -2294,6 +2304,7 @@
       key: "get",
       value: function get(options) {
         var crop = this;
+        crop.canvas.validation(null, true, false);
         var canvasRatio = crop.options.canvasRatio;
         var _crop$canvas$position = crop.canvas.position,
             scale = _crop$canvas$position.scale,
@@ -2325,7 +2336,7 @@
         if (antialiasing) {
           _canvas = antialisScale(_drawImage(clipWidth, clipHeight), clipScale);
         } else {
-          _canvas = _drawImage(options.width, Math.round(clipHeight * (options.width / clipWidth)));
+          _canvas = _drawImage(options.width, Math.round(clipHeight * clipScale));
         }
 
         var format = {

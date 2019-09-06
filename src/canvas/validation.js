@@ -1,7 +1,7 @@
 import { calculate } from './helper'
 
 export default {
-  validation (position, isDraw) {
+  validation (position, isDraw, transition = true) {
     const that = this
     position = position || that.position
     const { maxScale, minScale } = that.options
@@ -30,7 +30,12 @@ export default {
     }
 
     if (isDraw && result.isDraw) {
-      that.animate(result.x, result.y, result.scale)
+      if (transition) {
+        that.animate(result.x, result.y, result.scale)
+      } else {
+        that.setData({ x: result.x, y: result.y, scale: result.scale })
+        that.draw()
+      }
     }
 
     return result

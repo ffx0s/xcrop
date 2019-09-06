@@ -143,6 +143,9 @@ class Crop {
 
   get (options) {
     const crop = this
+
+    crop.canvas.validation(null, true, false)
+
     const { canvasRatio } = crop.options
     const { scale, x, y } = crop.canvas.position
     const clipWidth = crop.border.width * canvasRatio / scale
@@ -180,7 +183,7 @@ class Crop {
     if (antialiasing) {
       canvas = antialisScale(_drawImage(clipWidth, clipHeight), clipScale)
     } else {
-      canvas = _drawImage(options.width, Math.round(clipHeight * (options.width / clipWidth)))
+      canvas = _drawImage(options.width, Math.round(clipHeight * clipScale))
     }
 
     const format = {
