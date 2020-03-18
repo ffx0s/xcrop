@@ -1,6 +1,6 @@
 
     /*!
-     * @name xcrop v1.1.14
+     * @name xcrop v1.1.15
      * @github https://github.com/ffx0s/xcrop
      * @license MIT.
      */
@@ -9,7 +9,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = global || self, global.Crop = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   var win = window; var Math = win.Math;
 
@@ -795,9 +795,9 @@
 
       var point = {
         x: (touchCenter.x - that.rect.left) * that.canvasRatio,
-        y: (touchCenter.y - that.rect.top) * that.canvasRatio // 双指两次移动的差值
+        y: (touchCenter.y - that.rect.top) * that.canvasRatio
+      }; // 双指两次移动的差值
 
-      };
       var disX = point.x - that.last.point.x;
       var disY = point.y - that.last.point.y; // 双指两次移动间隔的比例
 
@@ -1105,17 +1105,17 @@
   var defaultsOptions = {
     time: 500,
     type: 'easeOutQuad'
-    /**
-     * 动画执行函数，仅在opiotns.running函数返回数值，不做具体元素的动画操作
-     * @param {Object} options 选项
-     * @property {Number} [options.time = 500] 在指定时间（ms）内完成动画，默认500ms
-     * @property {String} [options.type = 'easeOutQuad'] 动画类型，默认linear
-     * @property {Array} options.targets 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
-     * @property {Function} options.running - options.targets数值变化过程会执行这个函数
-     * @property {Function} options.end 结束后的回调函数
-     */
-
   };
+  /**
+   * 动画执行函数，仅在opiotns.running函数返回数值，不做具体元素的动画操作
+   * @param {Object} options 选项
+   * @property {Number} [options.time = 500] 在指定时间（ms）内完成动画，默认500ms
+   * @property {String} [options.type = 'easeOutQuad'] 动画类型，默认linear
+   * @property {Array} options.targets 二维数组，存放起始值与目标值，例：[[0, 100], [100, 0]]，表示起始值0到目标值100的过程中的变化，变化的数值会作为options.running函数的参数返回
+   * @property {Function} options.running - options.targets数值变化过程会执行这个函数
+   * @property {Function} options.end 结束后的回调函数
+   */
+
   function _animate (_options) {
     var timer = null;
     var options = extendDeep({}, defaultsOptions, _options);
@@ -1535,13 +1535,12 @@
         callback(imageEl);
       }
     }
-    /**
-     * IOS端 canvas 有大小限制，超过了会报错
-     * IOS8：2000x2000
-     * IOS9：4096x4096
-     */
-
   };
+  /**
+   * IOS端 canvas 有大小限制，超过了会报错
+   * IOS8：2000x2000
+   * IOS9：4096x4096
+   */
 
   var maximum = function () {
     if (browser.ios) {
@@ -1749,9 +1748,9 @@
       y: 0,
       width: 0,
       height: 0,
-      scale: 1 // 图片数据
+      scale: 1
+    }; // 图片数据
 
-    };
     canvas.image = {
       width: 0,
       height: 0,
@@ -1794,9 +1793,9 @@
       var image = {
         el: canvas,
         width: canvas.width,
-        height: canvas.height // 减去偏移量获得实际容器的大小
+        height: canvas.height
+      }; // 减去偏移量获得实际容器的大小
 
-      };
       var canvasWidth = width - (offset.left + offset.right);
       var canvasHeight = height - (offset.top + offset.bottom); // 通过imgCover实现图片铺满容器，返回图片的坐标位置
 
@@ -2028,9 +2027,7 @@
 
   var slice$1 = Array.prototype.slice;
 
-  var EventEmitter =
-  /*#__PURE__*/
-  function () {
+  var EventEmitter = /*#__PURE__*/function () {
     function EventEmitter() {
       _classCallCheck(this, EventEmitter);
 
@@ -2114,9 +2111,7 @@
     return EventEmitter;
   }();
 
-  var Canvas =
-  /*#__PURE__*/
-  function (_EventEmitter) {
+  var Canvas = /*#__PURE__*/function (_EventEmitter) {
     _inherits(Canvas, _EventEmitter);
 
     // 默认选项
@@ -2179,9 +2174,7 @@
   var viewHeight = document.documentElement.clientHeight;
   var borderSize = Math.min(viewWidth, viewHeight) * 0.9;
 
-  var Crop =
-  /*#__PURE__*/
-  function () {
+  var Crop = /*#__PURE__*/function () {
     // 默认选项
     function Crop() {
       var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -2537,4 +2530,4 @@
 
   return Crop;
 
-}));
+})));
