@@ -1843,7 +1843,7 @@
         x: 1,
         y: 1,
         scale: 4
-      };
+      }; // eslint-disable-next-line no-unused-vars
 
       for (var prop in data) {
         that.position[prop] = toFixed(data[prop], digits[prop]);
@@ -2306,7 +2306,17 @@
         var clipWidth = crop.border.width * canvasRatio / scale;
         var clipHeight = crop.border.height * canvasRatio / scale;
         var clipX = (crop.border.x * canvasRatio - x) / scale;
+
+        if (clipX < 0) {
+          clipX = 0;
+        }
+
         var clipY = (crop.border.y * canvasRatio - y) / scale;
+
+        if (clipY < 0) {
+          clipY = 0;
+        }
+
         var count = 3;
 
         var _canvas;

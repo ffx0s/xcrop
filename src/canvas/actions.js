@@ -101,7 +101,8 @@ export default {
     const that = this
     const digits = { x: 1, y: 1, scale: 4 }
 
-    for (let prop in data) {
+    // eslint-disable-next-line no-unused-vars
+    for (const prop in data) {
       that.position[prop] = toFixed(data[prop], digits[prop])
     }
   },

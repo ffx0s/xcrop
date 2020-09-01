@@ -5,7 +5,7 @@ export default {
     const that = this
     position = position || that.position
     const { maxScale, minScale } = that.options
-    let scale = position.scale
+    const scale = position.scale
     let result = {
       x: position.x,
       y: position.y,

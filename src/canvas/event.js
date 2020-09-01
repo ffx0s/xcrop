@@ -274,7 +274,7 @@ export default {
       x: (that.last.move.x - rect.left) * that.canvasRatio,
       y: (that.last.move.y - rect.top) * that.canvasRatio
     }
-    let scale = that.position.scale
+    const scale = that.position.scale
     that.scaleTo(point, scale < maxScale ? maxScale : minScale, true, true)
   }
 }
