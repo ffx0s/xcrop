@@ -1,6 +1,6 @@
 
     /*!
-     * @name xcrop v1.1.16
+     * @name xcrop v1.1.17
      * @github https://github.com/ffx0s/xcrop
      * @license MIT.
      */
@@ -81,6 +81,19 @@
     return _setPrototypeOf(o, p);
   }
 
+  function _isNativeReflectConstruct() {
+    if (typeof Reflect === "undefined" || !Reflect.construct) return false;
+    if (Reflect.construct.sham) return false;
+    if (typeof Proxy === "function") return true;
+
+    try {
+      Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function _assertThisInitialized(self) {
     if (self === void 0) {
       throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
@@ -95,6 +108,25 @@
     }
 
     return _assertThisInitialized(self);
+  }
+
+  function _createSuper(Derived) {
+    var hasNativeReflectConstruct = _isNativeReflectConstruct();
+
+    return function _createSuperInternal() {
+      var Super = _getPrototypeOf(Derived),
+          result;
+
+      if (hasNativeReflectConstruct) {
+        var NewTarget = _getPrototypeOf(this).constructor;
+
+        result = Reflect.construct(Super, arguments, NewTarget);
+      } else {
+        result = Super.apply(this, arguments);
+      }
+
+      return _possibleConstructorReturn(this, result);
+    };
   }
 
   function styleInject(css, ref) {
@@ -124,13 +156,13 @@
     }
   }
 
-  var css = ".crop{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:99;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop_hide{display:none}.crop_slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop_slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop_slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop_slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop__zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop__mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop__mask:before{top:0;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;border-radius:inherit}.crop__handle,.crop__mask:before{position:absolute;left:0;width:100%}.crop__handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop__handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop__handle-cancle{float:left}.crop__handle-confirm{float:right}";
+  var css = ".crop{position:fixed;left:0;top:0;overflow:hidden;background:#000;z-index:99;-ms-touch-action:none;touch-action:none;-webkit-transition:transform .3s;transition:transform .3s;-webkit-transition:-webkit-transform .3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.crop_hide{display:none}.crop_slide-to-left{-webkit-transform:translate3d(-100%,0,0);transform:translate3d(-100%,0,0)}.crop_slide-to-right{-webkit-transform:translate3d(100%,0,0);transform:translate3d(100%,0,0)}.crop_slide-to-top{-webkit-transform:translate3d(0,-100%,0);transform:translate3d(0,-100%,0)}.crop_slide-to-bottom{-webkit-transform:translate3d(0,100%,0);transform:translate3d(0,100%,0)}.crop__zoom{position:absolute;z-index:2;width:100%;height:100%;left:0;top:0}.crop__mask{position:absolute;overflow:hidden;border:1px solid rgba(0,0,0,.6);-webkit-box-sizing:content-box;box-sizing:content-box;z-index:1}.crop__mask:before{top:0;content:\"\";height:100%;border:1px solid #fff;-webkit-box-sizing:border-box;box-sizing:border-box;border-radius:inherit}.crop__handle,.crop__mask:before{position:absolute;left:0;width:100%}.crop__handle{bottom:0;height:50px;line-height:50px;-webkit-transform:translateZ(0);transform:translateZ(0);z-index:3}.crop__handle div{height:100%;width:80px;color:#fff;font-size:16px;text-align:center}.crop__handle-cancel{float:left}.crop__handle-confirm{float:right}";
   styleInject(css);
 
   function template(options) {
-    var cancleText = options.cancleText,
+    var cancelText = options.cancelText,
         confirmText = options.confirmText;
-    return '<div class="crop" data-el="container">' + '<div class="crop__zoom" data-el="zoom"></div>' + '<div class="crop__mask" data-el="mask"></div>' + '<div class="crop__handle" data-el="handle">' + "<div class=\"crop__handle-cancle\" data-el=\"cancle\" data-click=\"onCancle\">".concat(cancleText, "</div>") + "<div class=\"crop__handle-confirm\" data-el=\"confirm\" data-click=\"onConfirm\">".concat(confirmText, "</div>") + '</div>' + '</div>';
+    return '<div class="crop" data-el="container">' + '<div class="crop__zoom" data-el="zoom"></div>' + '<div class="crop__mask" data-el="mask"></div>' + '<div class="crop__handle" data-el="handle">' + "<div class=\"crop__handle-cancel\" data-el=\"cancel\" data-click=\"onCancel\">".concat(cancelText, "</div>") + "<div class=\"crop__handle-confirm\" data-el=\"confirm\" data-click=\"onConfirm\">".concat(confirmText, "</div>") + '</div>' + '</div>';
   }
 
   var toString = Object.prototype.toString;
@@ -2114,6 +2146,8 @@
   var Canvas = /*#__PURE__*/function (_EventEmitter) {
     _inherits(Canvas, _EventEmitter);
 
+    var _super = _createSuper(Canvas);
+
     // 默认选项
     function Canvas() {
       var _this;
@@ -2122,7 +2156,7 @@
 
       _classCallCheck(this, Canvas);
 
-      _this = _possibleConstructorReturn(this, _getPrototypeOf(Canvas).call(this));
+      _this = _super.call(this);
 
       var that = _assertThisInitialized(_this);
 
@@ -2266,9 +2300,9 @@
         eventName && this[eventName] && this[eventName]();
       }
     }, {
-      key: "onCancle",
-      value: function onCancle() {
-        this.emit('cancle', this);
+      key: "onCancel",
+      value: function onCancel() {
+        this.emit('cancel', this);
       }
     }, {
       key: "onConfirm",
@@ -2526,7 +2560,7 @@
     canvasRatio: 2,
     // 按钮文字
     confirmText: '确认',
-    cancleText: '取消',
+    cancelText: '取消',
     // 显示隐藏类名
     beforeShowClass: 'crop_slide-to-right',
     beforeHideClass: 'crop_slide-to-bottom'
