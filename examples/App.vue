@@ -7,7 +7,7 @@
     <Crop
       :file="file"
       :options="options"
-      @on-cancle="onCancle"
+      @on-cancel="onCancel"
       @on-confirm="onConfirm"
       @on-error="onError"
     />
@@ -29,7 +29,7 @@ export default {
     onChange (e) {
       this.file = e.target.files[0]
     },
-    onCancle (crop) {
+    onCancel (crop) {
       this.file = null
       crop.hide()
     },

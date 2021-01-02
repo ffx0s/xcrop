@@ -2,7 +2,7 @@ import React, { Component } from 'react' // eslint-disable-line
 import Crop from 'xcrop'
 
 const EVENTS = [
-  'cancle', // 取消
+  'cancel', // 取消
   'confirm', // 确认
   'loaded', // 图片加载完成
   'error', // 图片加载出错
@@ -14,7 +14,7 @@ const EVENTS = [
   'pinchend' // 双指拖动结束
 ]
 
-export default class extends Component {
+export default class ReactCrop extends Component {
   static defaultProps = {
     options: {}
   }

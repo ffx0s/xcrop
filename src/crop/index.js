@@ -33,7 +33,7 @@ class Crop {
     canvasRatio: 2,
     // 按钮文字
     confirmText: '确认',
-    cancleText: '取消',
+    cancelText: '取消',
     // 显示隐藏类名
     beforeShowClass: 'crop_slide-to-right',
     beforeHideClass: 'crop_slide-to-bottom'
@@ -117,8 +117,8 @@ class Crop {
     eventName && this[eventName] && this[eventName]()
   }
 
-  onCancle () {
-    this.emit('cancle', this)
+  onCancel () {
+    this.emit('cancel', this)
   }
 
   onConfirm () {

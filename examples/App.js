@@ -1,8 +1,9 @@
+// eslint-disable-next-line no-unused-vars
 import React, { Component } from 'react'
+// eslint-disable-next-line no-unused-vars
 import Crop from 'xcrop/src/components/ReactCrop'
 
 export default class App extends Component {
-
   constructor (props) {
     super(props)
 
@@ -12,7 +13,7 @@ export default class App extends Component {
     }
 
     this.onChange = this.onChange.bind(this)
-    this.onCancle = this.onCancle.bind(this)
+    this.onCancel = this.onCancel.bind(this)
     this.onConfirm = this.onConfirm.bind(this)
     this.onError = this.onError.bind(this)
   }
@@ -21,7 +22,7 @@ export default class App extends Component {
     this.crop[0].load(e.target.files[0])
   }
 
-  onCancle (crop) {
+  onCancel (crop) {
     crop.hide()
   }
 
@@ -44,9 +45,9 @@ export default class App extends Component {
         {this.state.output && <img src={this.state.output} width="100%" alt="" />}
 
         <Crop
-          ref={component => this.crop = component || null}
+          ref={component => { this.crop = component || null }}
           options={this.state.options}
-          onCancle={this.onCancle}
+          onCancel={this.onCancel}
           onConfirm={this.onConfirm}
           onError={this.onError}
         />

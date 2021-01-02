@@ -6,7 +6,7 @@
 import Crop from 'xcrop'
 
 const EVENTS = [
-  'cancle',       // 取消
+  'cancel',       // 取消
   'confirm',      // 确认
   'loaded',       // 图片加载完成
   'error',        // 图片加载出错

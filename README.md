@@ -27,7 +27,7 @@ import Crop from 'xcrop'
 const options = {}
 const crop = new Crop(options)
 
-crop.on('cancle', crop => {
+crop.on('cancel', crop => {
   crop.hide()
 })
 crop.on('confirm', crop => {
@@ -51,7 +51,7 @@ document.getElementById('file-input').onchange = onChange
 <Crop
   :file="file"
   :options="options"
-  @on-cancle="onCancle"
+  @on-cancel="onCancel"
   @on-confirm="onConfirm"
   @on-error="onError"
 />
@@ -74,7 +74,7 @@ export default {
     onChange (e) {
       this.file = e.target.files[0]
     },
-    onCancle (crop) {
+    onCancel (crop) {
       this.file = null
       crop.hide()
     },
@@ -109,7 +109,7 @@ export default class App extends Component {
     }
 
     this.onChange = this.onChange.bind(this)
-    this.onCancle = this.onCancle.bind(this)
+    this.onCancel = this.onCancel.bind(this)
     this.onConfirm = this.onConfirm.bind(this)
     this.onError = this.onError.bind(this)
   }
@@ -118,7 +118,7 @@ export default class App extends Component {
     this.crop[0].load(e.target.files[0])
   }
 
-  onCancle (crop) {
+  onCancel (crop) {
     crop.hide()
   }
 
@@ -143,7 +143,7 @@ export default class App extends Component {
         <Crop
           ref={component => this.crop = component || null}
           options={this.state.options}
-          onCancle={this.onCancle}
+          onCancel={this.onCancel}
           onConfirm={this.onConfirm}
           onError={this.onError}
         />
@@ -167,7 +167,7 @@ export default class App extends Component {
 |circle|false|Boolean|false|裁剪框是否为圆形，仅样式改变，裁剪后输出的图片依然是矩形，不支持安卓<=4.1的版本|
 |maxScale|false|Number|2|允许缩放的最大比例|
 |confirmText|false|String|确认|确认按钮文字|
-|cancleText|false|String|取消|取消按钮文字|
+|cancelText|false|String|取消|取消按钮文字|
 |beforeShowClass|false|String|crop_slide-to-left|显示的动画类名，会在显示之前添加，之后移除，可选：crop-slide-to*, *: left/right/top/bottom|
 |beforeHideClass|false|String|crop_slide-to-bottom|隐藏的动画类名，会在隐藏之前添加，参数同上|
 
@@ -227,7 +227,7 @@ export default class App extends Component {
 |:-----|-----------------------------|  
 |loaded|图片加载完成|  
 |error|图片加载失败|  
-|cancle|按钮取消|  
+|cancel|按钮取消|  
 |confirm|按钮确认|  
 |dragstart|单指按下|  
 |dragmove|单指拖动|  

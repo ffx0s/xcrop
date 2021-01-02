@@ -9,13 +9,14 @@
     body {
       margin: 0;
       padding: 0;
-      color: rgba(0,0,0,.8);
+      color: rgba(0, 0, 0, .8);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
     }
+
     button {
       position: relative;
       text-align: center;
-      color: rgba(0,0,0,.65);
+      color: rgba(0, 0, 0, .65);
       background-color: #fff;
       border: 1px solid #d9d9d9;
       height: 24px;
@@ -23,14 +24,17 @@
       font-size: 14px;
       border-radius: 2px;
     }
+
     #app {
       padding: 20px;
       text-align: center;
     }
+
     #result {
       padding: 20px;
       border: 1px solid #d9d9d9;
     }
+
     #fileInput {
       position: absolute;
       top: 0;
@@ -70,7 +74,7 @@
       function createInstance() {
         var instance = new Crop()
         instance
-          .on('cancle', function (crop) {
+          .on('cancel', function (crop) {
             crop.hide()
           })
           .on('confirm', function (crop) {
