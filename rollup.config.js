@@ -34,7 +34,7 @@ export default {
         cssnext({ warnForDuplicates: false }),
         cssnano()
       ],
-      extensions: [ '.css' ]
+      extensions: ['.css']
     }),
     resolve({
       browser: true
