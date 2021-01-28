@@ -1,6 +1,6 @@
 import {
   extendDeep, browser, noop,
-  objectAssign
+  objectAssign, isNumber
 } from './shared'
 
 import {
@@ -70,7 +70,7 @@ export function renderImageToCanvas (img, canvas, options, doSquash) {
   let tmpCanvas = document.createElement('canvas')
   tmpCanvas.width = tmpCanvas.height = d
   let tmpCtx = tmpCanvas.getContext('2d')
-  let vertSquashRatio = doSquash ? detectVerticalSquash(img, iw, ih) : 1
+  const vertSquashRatio = doSquash ? detectVerticalSquash(img, iw, ih) : 1
   const dw = Math.ceil(d * width / iw)
   const dh = Math.ceil(d * height / ih / vertSquashRatio)
   let sy = 0
@@ -287,6 +287,28 @@ const maximum = (() => {
 })()
 
 /**
+ * Check if the browser supports automatic image orientation
+ * @param {Function} callback
+ */
+export function supportAutoOrientation (callback) {
+  const testImageURL =
+    'data:image/jpeg;base64,/9j/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAA' +
+    'AAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA' +
+    'QEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE' +
+    'BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAAIAAwMBEQACEQEDEQH/x' +
+    'ABRAAEAAAAAAAAAAAAAAAAAAAAKEAEBAQADAQEAAAAAAAAAAAAGBQQDCAkCBwEBAAAAAAA' +
+    'AAAAAAAAAAAAAABEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AG8T9NfSMEVMhQ' +
+    'voP3fFiRZ+MTHDifa/95OFSZU5OzRzxkyejv8ciEfhSceSXGjS8eSdLnZc2HDm4M3BxcXw' +
+    'H/9k='
+  const img = document.createElement('img')
+  img.onload = function () {
+    const orientation = img.width === 2 && img.height === 3
+    callback(orientation)
+  }
+  img.src = testImageURL
+}
+
+/**
  * 将图片转成canvas
  * @param {(string|file|element)} target 目标
  * @param {Function} callback 转换成功回调函数
@@ -322,14 +344,19 @@ export function imageToCanvas (target, callback, opts) {
 
   // 将目标转成 image 对象
   actions[type].toImage(target, image => {
-    // 如果需要修正图片方向，则获取当前图片方向
+    // 是否需要修正图片方向，新版浏览器已支持此功能，但是需要兼容旧版浏览器所以加了 supportAutoOrientation 做判断
     if (options.orientation) {
-      // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
-      actions[type].getArrayBuffer(target, arrayBuffer => {
-        const orientation = getOrientation(arrayBuffer)
-
-        check(target, image, orientation)
-      }, options.errorCallback)
+      supportAutoOrientation((supported) => {
+        if (supported) {
+          check(target, image)
+        } else {
+          // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
+          actions[type].getArrayBuffer(target, arrayBuffer => {
+            const orientation = getOrientation(arrayBuffer)
+            check(target, image, orientation)
+          }, options.errorCallback)
+        }
+      })
     } else {
       check(target, image)
     }
@@ -337,13 +364,13 @@ export function imageToCanvas (target, callback, opts) {
 
   function check (target, image, orientation) {
     const canvas = document.createElement('canvas')
-    const imageWidth = image.width
-    const imageHeight = image.height
+    const imageWidth = image.naturalWidth || image.width
+    const imageHeight = image.naturalHeight || image.height
     const ctx = canvas.getContext('2d')
 
     // 是否需要修正图片方向
     function shouldTransformCoordinate (width, height) {
-      if (options.orientation) {
+      if (isNumber(orientation)) {
         transformCoordinate(canvas, ctx, width, height, orientation)
       } else {
         canvas.width = width
