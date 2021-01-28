@@ -1,6 +1,6 @@
 
     /*!
-     * @name xcrop v1.1.17
+     * @name xcrop v1.1.18
      * @github https://github.com/ffx0s/xcrop
      * @license MIT.
      */
@@ -1585,12 +1585,28 @@
     return null;
   }();
   /**
+   * Check if the browser supports automatic image orientation
+   * @param {Function} callback
+   */
+
+
+  function supportAutoOrientation(callback) {
+    var testImageURL = 'data:image/jpeg;base64,/9j/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAA' + 'AAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBA' + 'QEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE' + 'BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAAIAAwMBEQACEQEDEQH/x' + 'ABRAAEAAAAAAAAAAAAAAAAAAAAKEAEBAQADAQEAAAAAAAAAAAAGBQQDCAkCBwEBAAAAAAA' + 'AAAAAAAAAAAAAABEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AG8T9NfSMEVMhQ' + 'voP3fFiRZ+MTHDifa/95OFSZU5OzRzxkyejv8ciEfhSceSXGjS8eSdLnZc2HDm4M3BxcXw' + 'H/9k=';
+    var img = document.createElement('img');
+
+    img.onload = function () {
+      var orientation = img.width === 2 && img.height === 3;
+      callback(orientation);
+    };
+
+    img.src = testImageURL;
+  }
+  /**
    * 将图片转成canvas
    * @param {(string|file|element)} target 目标
    * @param {Function} callback 转换成功回调函数
    * @param {Object} opt 可选项
    */
-
 
   function imageToCanvas(target, callback, opts) {
     var options = extendDeep({
@@ -1622,13 +1638,19 @@
 
 
     actions[type].toImage(target, function (image) {
-      // 如果需要修正图片方向，则获取当前图片方向
+      // 是否需要修正图片方向，新版浏览器已支持此功能，但是需要兼容旧版浏览器所以加了 supportAutoOrientation 做判断
       if (options.orientation) {
-        // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
-        actions[type].getArrayBuffer(target, function (arrayBuffer) {
-          var orientation = getOrientation(arrayBuffer);
-          check(target, image, orientation);
-        }, options.errorCallback);
+        supportAutoOrientation(function (supported) {
+          if (supported) {
+            check(target, image);
+          } else {
+            // 获取 arrayBuffer 用于读取 exif 信息，最终得到图片方向
+            actions[type].getArrayBuffer(target, function (arrayBuffer) {
+              var orientation = getOrientation(arrayBuffer);
+              check(target, image, orientation);
+            }, options.errorCallback);
+          }
+        });
       } else {
         check(target, image);
       }
@@ -1636,12 +1658,12 @@
 
     function check(target, image, orientation) {
       var canvas = document.createElement('canvas');
-      var imageWidth = image.width;
-      var imageHeight = image.height;
+      var imageWidth = image.naturalWidth || image.width;
+      var imageHeight = image.naturalHeight || image.height;
       var ctx = canvas.getContext('2d'); // 是否需要修正图片方向
 
       function shouldTransformCoordinate(width, height) {
-        if (options.orientation) {
+        if (isNumber(orientation)) {
           transformCoordinate(canvas, ctx, width, height, orientation);
         } else {
           canvas.width = width;
